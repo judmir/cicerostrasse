@@ -4,10 +4,10 @@
 .image-card-photo { aspect-ratio: 1; border-radius: 3px; }
 .image-card:hover img { filter: brightness(.95); }
 .image-card:focus-visible { outline-offset: 1px; }
-.upload-progress { display: flex; flex-direction: column; gap: 10px; color: #7c8da2; font-size: 13px; margin: -12px 0 25px; }
-.upload-progress progress { width: 100%; height: 4px; border: none; border-radius: 4px; overflow: hidden; accent-color: #728ca8; }
-.upload-progress progress::-webkit-progress-bar { background: #edf0f5; }
-.upload-progress progress::-webkit-progress-value { background: #728ca8; }
+.upload-progress { display: flex; flex-direction: column; gap: 10px; color: var(--muted); font-size: 13px; margin: -12px 0 25px; }
+.upload-progress progress { width: 100%; height: 4px; border: none; border-radius: 4px; overflow: hidden; accent-color: var(--blue); }
+.upload-progress progress::-webkit-progress-bar { background: var(--border); }
+.upload-progress progress::-webkit-progress-value { background: var(--blue); }
 body.album-open { overflow: hidden; }
 .album-viewer[open] { display: block; position: fixed; inset: 0; margin: 0; padding: 0; width: 100vw; max-width: none; height: 100vh; height: 100dvh; max-height: none; border: 0; border-radius: 0; background: #101216; color: #f3f5f7; overflow: hidden; }
 .album-viewer::backdrop { background: #101216; backdrop-filter: none; }
@@ -32,21 +32,21 @@ body.album-open { overflow: hidden; }
 .album-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .album-thumbnail:hover { opacity: .85; }
 .album-thumbnail[aria-current=true] { opacity: 1; border-color: #fff; }
-.album-actions { position: absolute; z-index: 4; right: 73px; top: 62px; padding: 7px; width: 205px; background: #fff; color: #637185; border: 1px solid #e4e8ef; border-radius: 9px; box-shadow: 0 12px 40px #0005; }
+.album-actions { position: absolute; z-index: 4; right: 73px; top: 62px; padding: 7px; width: 205px; background: var(--surface); color: var(--muted); border: 1px solid var(--border); border-radius: 9px; box-shadow: 0 12px 40px #0005; }
 .album-actions button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 12px 10px; font-size: 14px; border-radius: 5px; }
-.album-actions button:hover { background: #f1f4f8; }
+.album-actions button:hover { background: var(--surface-hover); }
 .album-actions button svg { width: 16px; height: 16px; }
-.album-editor { position: absolute; z-index: 5; top: 72px; right: 28px; width: 305px; max-height: calc(100% - 95px); overflow-y: auto; background: #fff; color: #6c7a8c; padding: 23px; border-radius: 10px; box-shadow: 0 16px 60px #0006; }
+.album-editor { position: absolute; z-index: 5; top: 72px; right: 28px; width: 305px; max-height: calc(100% - 95px); overflow-y: auto; background: var(--surface); color: var(--ink); padding: 23px; border-radius: 10px; box-shadow: 0 16px 60px #0006; }
 .album-editor .dialog-heading { margin-bottom: 22px; }
 .album-editor h3 { margin: 0; font-size: 17px; font-weight: 500; }
-.album-editor label { display: block; font-size: 13px; color: #8c96a4; margin: 16px 0 8px; }
-.album-editor input, .album-editor textarea, .album-editor select { width: 100%; padding: 10px; border: 1px solid #e1e6ed; border-radius: 5px; background: white; color: #536379; font-size: 14px; }
+.album-editor label { display: block; font-size: 13px; color: var(--muted); margin: 16px 0 8px; }
+.album-editor input, .album-editor textarea, .album-editor select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--input); color: var(--ink); font-size: 14px; }
 .album-editor textarea { resize: vertical; line-height: 1.6; }
 .album-editor .button { margin-top: 24px; }
 .album-confirm { position: absolute; z-index: 10; inset: 0; background: #0008; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.album-confirm > div { width: 360px; border-radius: 12px; padding: 27px; color: #5f6f84; background: white; box-shadow: 0 20px 70px #0004; }
+.album-confirm > div { width: 360px; border-radius: 12px; padding: 27px; color: var(--ink); background: var(--surface); box-shadow: 0 20px 70px #0004; }
 .album-confirm h3 { font-size: 19px; font-weight: 500; margin: 0 0 12px; }
-.album-confirm p { color: #909aa8; font-size: 14px; line-height: 1.7; margin-bottom: 25px; }
+.album-confirm p { color: var(--muted); font-size: 14px; line-height: 1.7; margin-bottom: 25px; }
 .album-confirm > div > div { display: flex; justify-content: flex-end; gap: 10px; }
 .album-message { position: absolute; left: 50%; transform: translateX(-50%); bottom: 108px; z-index: 11; max-width: min(460px, 90vw); padding: 12px 18px; background: #85434d; color: #fff; font-size: 14px; border-radius: 8px; }
 @media (max-width: 600px) {

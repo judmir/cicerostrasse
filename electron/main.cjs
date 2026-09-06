@@ -11,7 +11,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 650,
     title: 'Cicerostraße — Room journal',
-    backgroundColor: '#f6f7f9',
+    backgroundColor: '#15171b',
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,

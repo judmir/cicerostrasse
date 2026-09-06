@@ -10,7 +10,7 @@ export function createRoomMesh(room) {
     else shape.lineTo(x, -z);
   });
   shape.closePath();
-  const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: '#f5f6f8' }));
+  const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: '#252d39' }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.012;
   floor.userData.roomId = room.id;
@@ -39,7 +39,7 @@ export function createFloorplan(container, onSelect) {
   let visible = true;
   let labelCounts = {};
 
-  function line(points, color = '#68778a', height = 0.035, opacity = 1) {
+  function line(points, color = '#90a0b8', height = 0.035, opacity = 1) {
     const vectors = points.map((point) => {
       const [x, z] = worldPoint(point);
       return new THREE.Vector3(x, height, z);
@@ -70,10 +70,10 @@ export function createFloorplan(container, onSelect) {
 
   function horizontalDimension(start, end, baseline, startWall, endWall, value) {
     const direction = baseline < startWall ? -1 : 1;
-    const color = '#b0bdcc';
+    const color = '#617188';
     line([[start, baseline], [end, baseline]], color);
     for (const [x, wall] of [[start, startWall], [end, endWall]]) {
-      line([[x, wall + direction * 15], [x, baseline + direction * 9]], '#d2dae4');
+      line([[x, wall + direction * 15], [x, baseline + direction * 9]], '#3a485e');
       line([[x - 6, baseline + 6], [x + 6, baseline - 6]], color);
     }
     dimensionLabel(value, [(start + end) / 2, baseline - 23]);
@@ -81,10 +81,10 @@ export function createFloorplan(container, onSelect) {
 
   function verticalDimension(start, end, baseline, wall, value) {
     const direction = baseline < wall ? -1 : 1;
-    const color = '#b0bdcc';
+    const color = '#617188';
     line([[baseline, start], [baseline, end]], color);
     for (const y of [start, end]) {
-      line([[wall + direction * 15, y], [baseline + direction * 9, y]], '#d2dae4');
+      line([[wall + direction * 15, y], [baseline + direction * 9, y]], '#3a485e');
       line([[baseline - 6, y + 6], [baseline + 6, y - 6]], color);
     }
     dimensionLabel(value, [baseline - 23, (start + end) / 2], true);
@@ -136,16 +136,16 @@ export function createFloorplan(container, onSelect) {
   }
 
   for (const [x1, y1, x2, y2] of walls) {
-    const mesh = box((x1 + x2) / 2, (y1 + y2) / 2, Math.abs(x2 - x1) + 10, Math.abs(y2 - y1) + 10, 0.2, '#566273');
+    const mesh = box((x1 + x2) / 2, (y1 + y2) / 2, Math.abs(x2 - x1) + 10, Math.abs(y2 - y1) + 10, 0.2, '#93a1b7');
     mesh.userData.wall = true;
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color: '#263444' }));
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color: '#586b85' }));
     mesh.add(edges);
   }
   for (const [x1, y1, x2, y2] of windows) {
-    box((x1 + x2) / 2, y1, x2 - x1, 8, 0.07, '#d3e2ed');
-    line([[x1, y1 - 2], [x2, y2 - 2]], '#728b9c', 0.12);
-    line([[x1, y1 + 2], [x2, y2 + 2]], '#728b9c', 0.12);
-    line([[(x1 + x2) / 2, y1 - 4], [(x1 + x2) / 2, y1 + 4]], '#728b9c', 0.12);
+    box((x1 + x2) / 2, y1, x2 - x1, 8, 0.07, '#344d68');
+    line([[x1, y1 - 2], [x2, y2 - 2]], '#91b4d4', 0.12);
+    line([[x1, y1 + 2], [x2, y2 + 2]], '#91b4d4', 0.12);
+    line([[(x1 + x2) / 2, y1 - 4], [(x1 + x2) / 2, y1 + 4]], '#91b4d4', 0.12);
   }
   for (const door of doors) {
     const arc = [];
@@ -153,30 +153,30 @@ export function createFloorplan(container, onSelect) {
       const angle = door.from + (door.to - door.from) * i / 32;
       arc.push([door.hinge[0] + Math.cos(angle) * door.radius, door.hinge[1] + Math.sin(angle) * door.radius]);
     }
-    line(arc, '#718094', 0.045, 0.8);
+    line(arc, '#8596af', 0.045, 0.8);
     const endpoint = ['390,80', '930,75'].includes(door.hinge.join(',')) ? arc[arc.length - 1] : arc[0];
-    line([door.hinge, endpoint], '#526276', 0.05);
+    line([door.hinge, endpoint], '#a0b1ca', 0.05);
   }
 
   // Planned two-sided kitchen; both runs stop before the window end.
-  box(419, 329.4, 37.4, 208, 0.16, '#f8f9fc');
-  box(531, 329.4, 37.4, 208, 0.16, '#f8f9fc');
-  box(538, 350, 36, 44, 0.17, '#edf0f6');
+  box(419, 329.4, 37.4, 208, 0.16, '#343e4e');
+  box(531, 329.4, 37.4, 208, 0.16, '#343e4e');
+  box(538, 350, 36, 44, 0.17, '#3c485b');
   for (const [x, y] of [[530, 340], [546, 340], [530, 359], [546, 359]]) {
     const circle = [];
     for (let i = 0; i <= 24; i++) circle.push([x + Math.cos(i / 24 * Math.PI * 2) * 5.5, y + Math.sin(i / 24 * Math.PI * 2) * 5.5]);
-    line(circle, '#7a8798', 0.205);
+    line(circle, '#a0b1c9', 0.205);
   }
   // Bathroom fittings follow the supplied drawing.
-  box(588, 321, 45, 122, 0.17, '#f9fcfc');
-  line([[574, 268], [600, 268], [602, 351], [599, 365], [589, 372], [578, 365], [574, 351], [574, 268]], '#acbfc5', 0.205);
-  box(581, 215, 28, 40, 0.16, '#f9fcfc');
-  box(582, 411, 29, 30, 0.15, '#f9fcfc');
+  box(588, 321, 45, 122, 0.17, '#344352');
+  line([[574, 268], [600, 268], [602, 351], [599, 365], [589, 372], [578, 365], [574, 351], [574, 268]], '#819db2', 0.205);
+  box(581, 215, 28, 40, 0.16, '#344352');
+  box(582, 411, 29, 30, 0.15, '#344352');
 
   function paint() {
     for (const floor of floors) {
       const room = rooms.find((item) => item.id === floor.userData.roomId);
-      floor.material.color.set(room.id === hovered ? '#e5ecfa' : '#f5f6f8');
+      floor.material.color.set(room.id === hovered ? '#354969' : '#252d39');
     }
     for (const label of labels) {
       label.element.classList.toggle('hovered', label.room.id === hovered);
