@@ -1,0 +1,212 @@
+@import url('./theme.css');
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-sans); color: var(--ink); background: #fff; font-size: 16px; -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+button { cursor: pointer; color: inherit; border: 0; background: none; }
+button:disabled { opacity: .5; cursor: default; }
+a { color: inherit; text-decoration: none; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #5b73cb; outline-offset: 4px; }
+h1:focus { outline: none; }
+svg { width: 18px; height: 18px; flex-shrink: 0; vertical-align: middle; }
+[hidden] { display: none !important; }
+.site-header { height: 86px; display: flex; align-items: center; justify-content: space-between; max-width: 1440px; margin: 0 auto; padding: 0 54px; }
+.wordmark { font-size: 17px; font-weight: 550; letter-spacing: -.4px; display: flex; align-items: center; gap: 10px; }
+.wordmark svg { width: 19px; height: 19px; color: #737a84; }
+.header-caption { font-size: 13px; color: #9399a2; }
+main { min-height: calc(100vh - 136px); }
+.plan-page { max-width: 1300px; margin: 0 auto; padding: 35px 44px 0; }
+.plan-intro { text-align: center; }
+h1 { font-size: 30px; font-weight: 500; letter-spacing: -.9px; margin: 0; }
+.plan-intro p { font-size: 14px; color: #9298a1; margin: 12px 0 0; }
+#floorplan { position: relative; width: 100%; height: clamp(360px, 62vh, 660px); margin: 5px auto 0; }
+#floorplan canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; }
+.apartment-plan-viewport { overflow-x: auto; scrollbar-width: thin; scrollbar-color: #d7dee8 transparent; }
+.plan-dimension-label { position: absolute; transform: translate(-50%, -50%); font-size: 13px; color: #7b8da4; font-variant-numeric: tabular-nums; white-space: nowrap; pointer-events: none; user-select: none; }
+.plan-dimension-label.vertical { transform: translate(-50%, -50%) rotate(-90deg); }
+.plan-room-area { font-size: 12px; color: #8c98a8; }
+.plan-room-label { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 5px; border-radius: 4px; transform: translate(-50%, -50%); padding: 9px 7px; color: #68717b; white-space: nowrap; transition: color .15s; }
+.plan-room-label:hover, .plan-room-label.hovered { color: #3c58ab; }
+.plan-room-name { font-size: 14px; font-weight: 450; letter-spacing: -.2px; }
+.plan-room-count { font-size: 12px; color: #a0a6ae; }
+.plan-footnote { text-align: center; font-size: 12px; color: #a1a6ad; margin: 0 0 30px; }
+.room-links { display: none; }
+.site-footer { height: 50px; display: flex; justify-content: center; align-items: center; color: #a0a6ad; font-size: 12px; }
+.room-page { max-width: 1200px; margin: 0 auto; padding: 36px 44px 45px; }
+.back-link { display: inline-flex; align-items: center; gap: 7px; color: #9097a1; font-size: 14px; margin-bottom: 36px; }
+.back-link svg { width: 16px; height: 16px; }
+.back-link:hover { color: #384763; }
+.room-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 37px; }
+.room-heading h1 { font-size: 36px; letter-spacing: -1px; }
+.room-heading p { color: #9199a4; font-size: 14px; margin: 10px 0 0; }
+.button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 41px; padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 450; white-space: nowrap; transition: background .15s; }
+.button svg { width: 17px; height: 17px; }
+.button.primary { background: #35475a; color: #fff; }
+.button.primary:hover { background: #25374a; }
+.button.secondary { border: 1px solid #e0e3e8; background: #fff; color: #727b89; }
+.button.destructive { background: #b34a52; color: white; }
+.text-button { display: inline-flex; align-items: center; gap: 8px; padding: 0; font-size: 14px; color: #748399; }
+.text-button:hover { color: #354f8b; }
+.text-button svg { width: 15px; height: 15px; }
+.empty-gallery { border: 1px dashed #dce0e5; border-radius: 8px; min-height: 380px; height: 46vh; max-height: 520px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
+.empty-gallery > svg { width: 30px; height: 30px; color: #a4adb9; margin-bottom: 20px; }
+.empty-gallery h2 { font-size: 18px; font-weight: 450; color: #737d8c; margin: 0 0 10px; }
+.empty-gallery .text-button { color: #586e94; }
+.empty-gallery p { font-size: 12px; color: #a5acb5; margin: 27px 0 0; text-align: center; line-height: 1.7; }
+.gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 31px 24px; }
+.image-card { padding: 0; min-width: 0; text-align: left; }
+.image-card-photo { aspect-ratio: 4 / 3; background: #f6f7f8; border-radius: 6px; position: relative; overflow: hidden; }
+.image-card-photo img { width: 100%; height: 100%; display: block; object-fit: cover; transition: transform .25s; }
+.image-edit { display: grid; place-items: center; position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; background: #ffffffed; border-radius: 5px; opacity: 0; transition: opacity .15s; color: #636e7d; }
+.image-edit svg { width: 13px; height: 13px; }
+.image-card:hover .image-edit, .image-card:focus-visible .image-edit { opacity: 1; }
+.image-card-title { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; color: #76808d; padding: 12px 1px 0; }
+.gallery-footnote { color: #a1a8b2; text-align: center; font-size: 12px; margin-top: 45px; }
+dialog { border: 1px solid #e4e7ed; border-radius: 10px; padding: 0; box-shadow: 0 25px 100px #111a3b25; max-height: 90vh; }
+dialog::backdrop { background: #17203455; backdrop-filter: blur(4px); }
+.image-dialog[open] { display: grid; grid-template-columns: minmax(0, 1fr) 330px; width: min(1040px, 94vw); }
+.viewer-image { display: flex; justify-content: center; align-items: center; background: #f3f4f6; min-height: 450px; padding: 30px; position: relative; }
+.viewer-image img { max-width: 100%; max-height: 78vh; object-fit: contain; }
+.viewer-file { position: absolute; bottom: 16px; left: 20px; right: 20px; text-align: center; font-size: 12px; color: #8993a1; }
+.viewer-file span { margin-inline: 6px; }
+.viewer-details { padding: 25px; overflow-y: auto; }
+.dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 24px; }
+.dialog-heading .eyebrow { color: #9199a6; font-size: 12px; letter-spacing: .6px; }
+.viewer-details h2 { font-size: 20px; font-weight: 500; margin: 0 0 20px; }
+.icon-button { display: grid; place-items: center; border-radius: 5px; width: 30px; height: 30px; color: #9aa1ad; }
+.icon-button:hover { background: #f1f3f6; color: #616f85; }
+.icon-button svg { width: 18px; height: 18px; }
+.viewer-details label { display: block; font-size: 13px; color: #838d9c; margin: 18px 0 8px; }
+.viewer-details input:not([type=file]), .viewer-details textarea, .viewer-details select { width: 100%; background: white; border: 1px solid #e0e4ea; border-radius: 5px; padding: 10px; color: #556375; font-size: 14px; }
+.viewer-details textarea { resize: vertical; line-height: 1.65; }
+textarea::placeholder { color: #aeb4bd; }
+.image-date { font-size: 12px; color: #9ba4b2; margin: 18px 0; }
+.full-width { width: 100%; }
+.viewer-actions { display: flex; flex-direction: column; gap: 20px; border-top: 1px solid #edf0f4; padding-top: 23px; margin: 25px 0; }
+.danger { color: #b66d74; }
+.danger:hover { color: #a04049; }
+.delete-confirm { background: #fcf3f4; border: 1px solid #f2dadd; border-radius: 6px; padding: 12px; margin-top: 16px; }
+.delete-confirm p { font-size: 14px; margin-top: 0; color: #a45e66; }
+.delete-confirm > div { display: flex; gap: 10px; }
+.toast { position: fixed; z-index: 100; bottom: 26px; left: 50%; transform: translateX(-50%); background: #35475a; padding: 13px 20px; color: white; border-radius: 7px; font-size: 14px; max-width: min(640px, 92vw); box-shadow: 0 6px 30px #111a3b15; }
+.toast.error { background: #a94250; }
+#drop-overlay { position: fixed; inset: 14px; z-index: 90; background: #f6f9fff5; border: 2px dashed #97a9c4; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; color: #7386a2; pointer-events: none; }
+#drop-overlay svg { width: 35px; height: 35px; }
+#drop-overlay span { font-size: 18px; text-align: center; padding-inline: 20px; }
+#drop-overlay strong { font-weight: 500; }
+.plan-fallback { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; }
+.plan-fallback img { width: 100%; }
+.plan-fallback p { color: #8b94a1; font-size: 14px; }
+.room-links.fallback-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 18px; margin-bottom: 25px; }
+
+@media (min-width: 1500px) { .gallery-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 800px) {
+  .site-header { height: 74px; padding-inline: 26px; }
+  .plan-page { padding: 38px 20px 0; }
+  #floorplan { height: 51vh; min-height: 330px; }
+  .plan-room-name { font-size: 12px; }
+  .plan-room-label { padding-inline: 4px; }
+  .plan-room-count { font-size: 12px; }
+  .room-page { padding-inline: 26px; }
+  .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 18px; }
+  .image-dialog[open] { display: block; width: 94vw; }
+  .viewer-image { height: 35vh; min-height: 230px; padding: 20px; }
+  .viewer-image img { max-height: 100%; }
+  .viewer-details { padding: 25px; }
+  .dialog-heading .close-dialog { position: absolute; top: 12px; right: 12px; background: white; }
+}
+@media (max-width: 520px) {
+  .site-header { padding-inline: 22px; }
+  .header-caption { display: none; }
+  .plan-page { padding: 35px 12px 0; }
+  #floorplan { min-height: 260px; height: 35vh; }
+  .plan-room-label { padding: 7px 2px; }
+  .plan-room-count { display: none; }
+  .plan-room-label[data-room=kuche], .plan-room-label[data-room=bad] { display: none; }
+  .room-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 18px; padding: 10px 24px 25px; }
+  .room-links a { font-size: 14px; padding-block: 6px; color: #7a8493; }
+  .room-links a:hover { color: #405e92; }
+  .plan-footnote { font-size: 12px; }
+  .room-page { padding: 23px 22px 40px; }
+  .back-link { margin-bottom: 30px; }
+  .room-heading { margin-bottom: 28px; }
+  .room-heading h1 { font-size: 31px; }
+  .button { padding: 10px 12px; }
+  .empty-gallery { min-height: 330px; height: 48vh; padding-inline: 20px; }
+  .gallery-grid { gap: 25px 14px; }
+  .image-card-title { font-size: 13px; }
+  .image-card-photo { aspect-ratio: 1; }
+  .image-edit { opacity: 1; width: 24px; height: 24px; top: 7px; right: 7px; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+/* A quiet, collapsible room reference beside the existing gallery. */
+.room-page { max-width: 1500px; }
+.room-navigation { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 36px; }
+.room-navigation .back-link { margin-bottom: 0; }
+.room-navigation .text-button { color: #8993a1; }
+.room-layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 44px; align-items: start; }
+.room-layout.plan-collapsed { grid-template-columns: minmax(0, 1fr); }
+.room-plan-sidebar { padding: 3px 25px 25px 0; border-right: 1px solid #edf0f3; position: sticky; top: 30px; min-width: 0; }
+.room-plan-heading { display: flex; justify-content: space-between; align-items: center; }
+.room-plan-heading h2 { margin: 0; font-size: 14px; font-weight: 450; color: #85909e; }
+.room-plan-heading .icon-button { color: #a2aab4; }
+.room-gallery-content { min-width: 0; }
+.room-diagram { margin: 26px 0 22px; }
+.room-diagram svg { width: 100%; height: auto; display: block; overflow: visible; }
+.room-diagram figcaption { text-align: center; font-size: 12px; color: #a2aab4; margin-top: 0; }
+.room-diagram-floor { fill: #f7f8fa; }
+.room-diagram-wall { stroke: #667585; stroke-width: 4.5; stroke-linecap: square; }
+.room-diagram-gap { stroke: #f7f8fa; stroke-width: 6; }
+.room-diagram-door { stroke: #96a4b5; stroke-width: 1; }
+.room-diagram-swing { fill: none; stroke: #aab6c4; stroke-width: .8; }
+.room-diagram-window { stroke: #b0c0d2; stroke-width: 1.2; }
+.room-diagram-fixture { fill: #fff; stroke: #d6dfe8; stroke-width: .8; }
+.room-diagram-name { font-family: var(--font-sans); font-size: 14px; fill: #8391a2; }
+.room-dimension-guide { stroke: #d7dfe8; stroke-width: .7; }
+.room-dimension-line { stroke: #a7b4c4; stroke-width: .8; }
+.room-dimension-text { font-family: var(--font-sans); font-size: 14px; fill: #7b8da4; font-variant-numeric: tabular-nums; }
+.room-measurements { margin: 28px 0 20px; }
+.room-measurements > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 13px; }
+.room-measurements dt { color: #97a0ac; font-size: 13px; }
+.room-measurements dd { margin: 0; font-size: 14px; color: #6c7c91; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.measurement-source { color: #a0a9b5; font-size: 12px; line-height: 1.8; margin: 0 0 25px; }
+#view-measured-plan { font-size: 13px; color: #8999ad; }
+#view-measured-plan svg { width: 14px; height: 14px; }
+.measured-plan-dialog { width: min(760px, 94vw); padding: 25px; }
+.measured-plan-dialog .dialog-heading h2 { font-size: 20px; font-weight: 500; margin: 0; }
+.measured-reference-window { overflow: hidden; aspect-ratio: 602 / 592; background: #fff; }
+.measured-reference-window img { display: block; width: 100%; height: auto; margin-top: -59.468%; }
+.measured-plan-dialog > p { color: #98a2b1; font-size: 12px; line-height: 1.8; margin: 18px 0 0; }
+@media (max-width: 1150px) {
+  .room-layout { grid-template-columns: 255px minmax(0, 1fr); gap: 28px; }
+  .room-plan-sidebar { padding-right: 20px; }
+  .room-layout:not(.plan-collapsed) .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .room-layout { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .room-plan-sidebar { position: static; border-right: 0; border-bottom: 1px solid #edf0f3; padding: 0 0 24px; }
+  #room-plan-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 22px; align-items: start; }
+  .room-diagram { grid-row: 1 / 3; margin: 20px 0 0; }
+  .room-measurements { margin-top: 40px; }
+  .room-measurements > div { display: block; margin-bottom: 22px; }
+  .room-measurements dt { margin-bottom: 7px; }
+  .measurement-source { line-height: 1.7; margin-bottom: 18px; }
+  #view-measured-plan { margin-top: 16px; }
+}
+@media (max-width: 440px) {
+  #room-plan-content { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); column-gap: 16px; }
+  .measurement-source { grid-column: 1 / -1; margin-top: 16px; }
+  .room-diagram { grid-row: auto; }
+  .room-diagram figcaption { font-size: 12px; }
+  .room-measurements dd { font-size: 13px; }
+}
+
+@media (max-width: 800px) {
+  /* Keep dimension text legible; narrow screens can scroll the full drawing. */
+  #floorplan { min-width: 760px; min-height: 390px; }
+  #floorplan canvas { touch-action: pan-x pan-y; }
+  .plan-dimension-label { font-size: 12px; }
+  .plan-room-label[data-room=kuche], .plan-room-label[data-room=bad] { display: flex; }
+}

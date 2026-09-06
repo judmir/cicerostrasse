@@ -1,0 +1,10 @@
+node_modules/
+.webpack/
+out/
+dist/
+tmp/
+test-results/
+playwright-report/
+coverage/
+*.sqlite*
+.DS_Store
