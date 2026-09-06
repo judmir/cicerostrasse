@@ -244,6 +244,7 @@ export function createFloorplan(container, onSelect) {
     }
   }
   return {
+    refreshNames() { for (const label of labels) { label.element.querySelector('.plan-room-name').textContent = label.room.name; label.element.setAttribute('aria-label', `Open ${label.room.name} gallery`); label.element.title = label.room.name; } },
     setCounts(counts) { labelCounts = counts; paint(); },
     setVisible(value) { visible = value; if (value) { hovered = null; resize(); paint(); } },
     resize,

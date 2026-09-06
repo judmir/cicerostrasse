@@ -44,3 +44,27 @@ export const doors = [
   { hinge: [770, 155], radius: 64, from: 0, to: Math.PI / 2 },
   { hinge: [295, 396], radius: 70, from: Math.PI, to: Math.PI * 1.5 },
 ];
+
+// Display names never replace the stable identifiers used by routes and stored records.
+const originalNames = new Map(rooms.map(room => [room.id, room.name]));
+const customNames = new Map();
+export const originalRoomName = id => originalNames.get(id);
+export function validateRoomName(value) {
+  const name = String(value ?? '').trim();
+  if (!name) throw new Error('Enter a room name.');
+  if (Array.from(name).length > 60) throw new Error('Keep the room name to 60 characters or fewer.');
+  if (/[\u0000-\u001f\u007f]/u.test(name)) throw new Error('Use a single line for the room name.');
+  return name;
+}
+export function setRoomDisplayName(id, value) {
+  if (!originalNames.has(id)) throw new Error('Choose a valid room.');
+  if (value === null) customNames.delete(id);
+  else customNames.set(id, validateRoomName(value));
+}
+export function applyRoomNames(records) {
+  customNames.clear();
+  for (const record of records) {
+    try { setRoomDisplayName(record.roomId, record.name); } catch { /* Ignore malformed settings; original names remain available. */ }
+  }
+}
+for (const room of rooms) Object.defineProperty(room, 'name', { enumerable: true, get: () => customNames.get(room.id) || originalNames.get(room.id) });

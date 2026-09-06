@@ -31,7 +31,7 @@ app.whenReady().then(async () => {
   const bytes = (await sharp({ create: { width: 16, height: 9, channels: 3, background: '#a98e72' } }).png().toBuffer()).toString('base64');
   await window.webContents.executeJavaScript(`(async () => {
     const blob = new Blob([Uint8Array.from(atob(${JSON.stringify(bytes)}), c => c.charCodeAt(0))], { type: 'image/png' });
-    const db = await new Promise((resolve, reject) => { const r = indexedDB.open('cicerostrasse-room-journal', 2); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+    const db = await new Promise((resolve, reject) => { const r = indexedDB.open('cicerostrasse-room-journal', 4); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
     await new Promise((resolve, reject) => { const tx = db.transaction('images', 'readwrite'); tx.objectStore('images').add({ id: 'smoke-source', roomId: 'kuche', title: 'Smoke test design', blob, width: 16, height: 9, createdAt: 1, updatedAt: 1 }); tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
     db.close();
   })()`);
@@ -42,6 +42,11 @@ app.whenReady().then(async () => {
     location.hash = '/room/kuche';
     const wait = async (predicate, label) => { for (let i = 0; i < 160; i++) { if (predicate()) return; await new Promise(r => setTimeout(r, 50)); } throw new Error(label + ': ' + document.body.textContent.slice(-2500)); };
     await wait(() => document.querySelector('[data-design-link="smoke-source"]'), 'Source gallery');
+    await wait(() => !document.querySelector('#rename-room').disabled, 'Room names loaded');
+    document.querySelector('#rename-room').click();
+    document.querySelector('#room-name-input').value = 'Kitchen studio';
+    document.querySelector('.room-name-form').requestSubmit();
+    await wait(() => document.querySelector('#room-title').textContent === 'Kitchen studio', 'Room renamed');
     document.querySelector('[data-design-link="smoke-source"]').click();
     await wait(() => document.querySelector('[data-restyle-source]'), 'Source page');
     document.querySelector('[data-restyle-source]').click();
@@ -58,6 +63,8 @@ app.whenReady().then(async () => {
     document.querySelector('[data-action="view"]').click();
     await wait(() => document.querySelector('.design-version-card'), 'Saved version card');
     document.querySelector('.design-version-card').click();
+    if (document.querySelector('#album-room option[value="kuche"]').textContent !== 'Kitchen studio') throw new Error('Photo room selector did not update');
+    if (!document.querySelector('#image-dialog-title').textContent.includes('Kitchen studio')) throw new Error('Photo viewer room name did not update');
     document.querySelector('#album-compare').click();
     await wait(() => document.querySelectorAll('#album-versions .restyle-comparison img').length === 2, 'Saved comparison');
     document.querySelector('[data-close-versions]').click();

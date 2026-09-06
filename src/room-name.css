@@ -1,0 +1,23 @@
+.room-heading-title { flex-wrap: wrap; column-gap: 8px; row-gap: 4px; }
+.room-heading-title h1 { overflow-wrap: anywhere; max-width: min(50vw, 600px); }
+#rename-room { flex-shrink: 0; color: var(--muted); }
+#rename-room:hover { color: var(--ink); }
+.room-name-editor { padding: 20px 28px; border-bottom: 1px solid var(--subtle-border); }
+.room-name-form { max-width: 680px; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 16px; }
+.room-name-field { flex: 1 1 260px; min-width: 0; }
+.room-name-field label { display: block; font-size: 13px; margin-bottom: 6px; }
+.room-name-field input { width: 100%; min-width: 0; padding: 8px 10px; background: var(--input); color: var(--ink); border: 1px solid var(--border); border-radius: 5px; font: inherit; font-size: 14px; }
+.room-name-field p { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 6px 0 0; }
+.room-name-buttons { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 25px; }
+#room-name-error { flex-basis: 100%; margin: 0; color: var(--ink); font-size: 13px; }
+#room-name-status { font-size: 12px; color: var(--muted); }
+.sidebar-link > span:first-of-type { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-room-name { max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 620px) {
+  .room-name-editor { padding: 16px; }
+  .room-name-field input { font-size: 16px; }
+  .room-name-buttons { padding-top: 0; }
+  .room-name-buttons .button, #rename-room { min-height: 40px; }
+  #rename-room { width: 40px; }
+  .room-heading-title h1 { max-width: calc(100vw - 130px); }
+}

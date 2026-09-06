@@ -1,3 +1,4 @@
+const escapeRoomName = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 // Transcribed from the user's second drawing. Original room IDs stay stable:
 // left room = Zimmer 1; right room = Zimmer 2; middle room = Zimmer 3.
 // Dimensions are the drawing's dimension-chain labels, not new site measurements.
@@ -87,7 +88,7 @@ export function renderRoomPlan(room) {
   if (m.balcony) details += line(left + 5, bottom - 6, right - 5, bottom - 6, 'room-diagram-window');
 
   return `<figure class="room-diagram"><svg viewBox="0 0 280 370" role="img" aria-labelledby="room-svg-title room-svg-desc">
-    <title id="room-svg-title">${room.name} floor plan</title><desc id="room-svg-desc">${dimension(m.width)} wide by ${dimension(m.depth)} deep. Area on the supplied plan: ${m.area.toFixed(1)} square meters. Openings and fittings are schematic.</desc>
+    <title id="room-svg-title">${escapeRoomName(room.name)} floor plan</title><desc id="room-svg-desc">${dimension(m.width)} wide by ${dimension(m.depth)} deep. Area on the supplied plan: ${m.area.toFixed(1)} square meters. Openings and fittings are schematic.</desc>
     <rect x="${n(left)}" y="${n(top)}" width="${n(w)}" height="${n(h)}" class="room-diagram-floor"/>
     ${line(left, top, right, top)}${line(right, top, right, bottom)}${line(right, bottom, left, bottom)}${line(left, bottom, left, top)}
     ${details}
@@ -97,7 +98,7 @@ export function renderRoomPlan(room) {
     ${line(right + 12, top, right + 33, top, 'room-dimension-guide')}${line(right + 12, bottom, right + 33, bottom, 'room-dimension-guide')}
     ${line(right + 26, top, right + 26, bottom, 'room-dimension-line')}${line(right + 23, top + 3, right + 29, top - 3, 'room-dimension-line')}${line(right + 23, bottom + 3, right + 29, bottom - 3, 'room-dimension-line')}
     <text transform="translate(${n(right + 43)} ${n((top + bottom) / 2)}) rotate(-90)" text-anchor="middle" class="room-dimension-text">${dimension(m.depth)}</text>
-    <text x="${n(left + w * .58)}" y="${n(top + h * .47)}" text-anchor="middle" class="room-diagram-name">${room.name}</text>
+    <text x="${n(left + w * .58)}" y="${n(top + h * .47)}" text-anchor="middle" class="room-diagram-name">${escapeRoomName(Array.from(room.name).slice(0, 16).join('') + (Array.from(room.name).length > 16 ? '…' : ''))}</text>
   </svg><figcaption>2D room plan</figcaption></figure>
   <dl class="room-measurements"><div><dt>Dimensions</dt><dd>${m.width.toFixed(2)} × ${m.depth.toFixed(2)} m</dd></div><div><dt>Area on plan</dt><dd>${m.area.toFixed(1)} m²</dd></div></dl>
   <p class="measurement-source">${m.sourceName !== room.name ? `${m.sourceName} in the supplied drawing. ` : ''}Dimensions from the plan; openings and fittings are schematic.${m.note ? ` ${m.note}` : ''}</p>`;

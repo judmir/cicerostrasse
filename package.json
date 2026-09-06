@@ -12,6 +12,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "start": "npm run build && electron .",
     "test": "node --test tests/*.test.js",
+    "test:room-names": "npm run build && electron scripts/smoke-room-names.cjs",
+    "test:inspiration": "npm run build && electron scripts/smoke-inspiration.cjs",
     "test:desktop": "npm run build && electron scripts/smoke-electron.cjs"
   },
   "dependencies": {

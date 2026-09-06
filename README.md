@@ -31,6 +31,22 @@ For Electron with live development updates (stop the web development server firs
 npm run dev:desktop
 ```
 
+## Rename a room
+
+Use the pencil beside the room heading to edit its display name. **Enter** or **Save name** saves it; **Escape** or **Cancel** leaves it unchanged. **Reset to original** restores the initial name. Names must contain 1–60 characters on one line. Failed saves keep the draft available for retry.
+
+The saved name appears in navigation, the room heading, mobile selector, floor-plan labels, photo dialogs, inspiration text and room-specific messages after reload. Long floor-plan labels are shortened visually while retaining their full accessible name. Names printed in the supplied reference drawings remain as historical source labels. Renaming changes no internal ID, route, measurement, image assignment, inspiration or version history. Names are saved in an independent `roomNames` store in IndexedDB version 4, with automatic upgrades preserving all earlier collections.
+
+## Collect room inspiration
+
+Open a room and choose **Design inspiration** beside **Sources**. Choose **Add inspiration**, then upload one image, paste a copied image with **⌘V / Ctrl+V**, or enter a direct image URL and choose **Load image**. Add an optional title, source link, and room note (up to 500 characters), then **Save inspiration**. JPG, PNG, WebP, GIF, and AVIF files up to 25 MB are supported. Pasting works anywhere in the active inspiration collection; pasting text into a field still works normally.
+
+Image links must return an image and allow browser access. Links that require sign-in, block cross-origin downloads, or point to a web page may not load. Upload or paste the image instead and retain the page URL in **Source link**. HTTPS pages may also block HTTP images. Loading times out after 20 seconds and can be canceled with the editor's close control. Successfully loaded images are stored as local bytes, so saved previews survive reloads and work offline.
+
+Open a saved image to enlarge it; **Escape** closes it. The pencil edits its title, note, or source link. The trash button asks for confirmation before deleting. Inspiration belongs to its room and stays separate from source images and generated versions. Unsaved drafts stay available when switching rooms in the current session; use **Save inspiration** before reloading or closing the app.
+
+This local update adds `#/room/kuche/inspiration` routes and an independent `inspirations` store in database version 3. Automatic upgrades from versions 1 and 2 retain existing photos, notes, and restyle history. No generation request is triggered by collecting inspiration.
+
 ## Restyle a design (local browser and Electron)
 
 Restyle is part of this app. Run `npm run dev` for a local browser, `npm run dev:desktop` for desktop development, or `npm start` for the desktop app. Restart an already-running development server after installing this update so it loads the new backend routes. The published static website does not include the Restyle backend.
@@ -72,8 +88,14 @@ The second drawing numbers rooms differently. IDs and gallery assignments are pr
 npm test
 npm run build
 npm run test:desktop
+npm run test:inspiration
+npm run test:room-names
 ```
 
 Tests cover room picking and image storage, isolation, updates, replacement, deletion, and input validation. The production web build is in `dist/`. Optional WebMCP room-list/navigation tools register only when a supported context exists; they have not been verified in a supported WebMCP host.
 
 Restyle tests cover model sequencing, structured output validation, geometry findings, cancellation, HTTP/IPC parity, database migration, atomic/idempotent version saves, and wizard interactions. The desktop smoke test runs the actual built UI and sandboxed preload with an isolated temporary profile and mocked model responses. Tests never call OpenAI or read a real API key. A live generation requires configuring your own key.
+
+The inspiration smoke test uses an isolated Electron profile and a local HTTP image fixture to verify URL import, file upload, clipboard events, validation, cancellation, editing, deletion, image viewing, room isolation, reload persistence, and separation from Sources. It captures full-page 1440px desktop and 390px mobile states in `.impeccable/review/`. Storage tests cover the version 2 to 3 upgrade, failed-save recovery, and navigation during pending operations.
+
+Room-name checks cover migration from database version 3, persistence and reset, validation and markup escaping, editor error recovery, pending navigation, native Enter/Escape behavior, and name propagation into room controls and the photo viewer.

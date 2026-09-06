@@ -17,5 +17,5 @@ test('version 1 database upgrade preserves original image bytes and notes', asyn
   assert.equal(await (await storage.listImages('kuche'))[0].blob.text(), 'legacy bytes');
   assert.equal(await storage.getNotes('kuche'), 'Keep this note');
   const db = await storage.openDatabase();
-  assert.equal(db.version, 2); assert.ok(db.objectStoreNames.contains('restyles'));
+  assert.equal(db.version, 4); assert.ok(db.objectStoreNames.contains('restyles'));
 });

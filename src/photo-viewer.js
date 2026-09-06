@@ -27,7 +27,7 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
       <nav id="album-filmstrip" class="album-filmstrip" aria-label="Album thumbnails"></nav>
       <div id="album-actions" class="album-actions" role="group" aria-label="Photo actions" hidden><button data-action="edit">${icon('pencil')} Edit details</button><button data-action="replace">${icon('refresh-cw')} Replace photo</button><button data-action="download">${icon('download')} Download photo</button><button data-action="delete" class="danger">${icon('trash-2')} Delete photo</button></div>
       <aside id="album-versions" class="album-versions" aria-label="Design versions" hidden></aside>
-      <aside id="album-editor" class="album-editor" aria-labelledby="album-editor-title" hidden><div class="dialog-heading"><h3 id="album-editor-title">Edit photo</h3><button id="album-editor-close" class="icon-button" aria-label="Close photo editor">${icon('x')}</button></div><form id="album-edit-form"><label for="album-title">Title</label><input id="album-title" maxlength="160" required/><label for="album-caption">Caption</label><textarea id="album-caption" rows="3" maxlength="5000" placeholder="Add a note…"></textarea><label for="album-room">Room</label><select id="album-room">${rooms.map((room) => `<option value="${room.id}">${room.name}</option>`).join('')}</select><button class="button primary full-width" type="submit">Save changes</button></form></aside>
+      <aside id="album-editor" class="album-editor" aria-labelledby="album-editor-title" hidden><div class="dialog-heading"><h3 id="album-editor-title">Edit photo</h3><button id="album-editor-close" class="icon-button" aria-label="Close photo editor">${icon('x')}</button></div><form id="album-edit-form"><label for="album-title">Title</label><input id="album-title" maxlength="160" required/><label for="album-caption">Caption</label><textarea id="album-caption" rows="3" maxlength="5000" placeholder="Add a note…"></textarea><label for="album-room">Room</label><select id="album-room">${rooms.map((room) => `<option value="${room.id}">${escape(room.name)}</option>`).join('')}</select><button class="button primary full-width" type="submit">Save changes</button></form></aside>
       <input id="album-replace-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" hidden/>
       <div id="album-message" class="album-message" role="status" hidden></div>
     </div>
@@ -255,6 +255,7 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
 
   return {
     open(id, photos, name) {
+      for (const option of $('#album-room').options) option.textContent = rooms.find(room => room.id === option.value)?.name || option.textContent;
       opener = document.activeElement;
       roomName = name;
       versionNumbers = new Map(photos.filter((photo) => photo.restyleId).map((photo, index) => [photo.id, index + 1]));

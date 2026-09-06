@@ -1,4 +1,4 @@
-import { roomById } from './rooms.js';
+import { roomById, validateRoomName } from './rooms.js';
 
 const DATABASE = 'cicerostrasse-room-journal';
 let connection;
@@ -6,7 +6,7 @@ let connection;
 export function openDatabase() {
   if (connection) return connection;
   connection = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE, 2);
+    const request = indexedDB.open(DATABASE, 4);
     request.onupgradeneeded = (event) => {
       const db = request.result;
       if (event.oldVersion < 1) {
@@ -19,6 +19,11 @@ export function openDatabase() {
         images.createIndex('rootImageId', 'rootImageId');
         images.createIndex('parentImageId', 'parentImageId');
         db.createObjectStore('restyles', { keyPath: 'requestId' });
+      }
+      if (event.oldVersion < 4) db.createObjectStore('roomNames', { keyPath: 'roomId' });
+      if (event.oldVersion < 3) {
+        const inspirations = db.createObjectStore('inspirations', { keyPath: 'id' });
+        inspirations.createIndex('roomId', 'roomId');
       }
     };
     request.onsuccess = () => {
@@ -163,4 +168,65 @@ export function validateImageFile(file) {
   }
   if (file.size > 25 * 1024 * 1024) throw new Error('Choose an image smaller than 25 MB.');
   if (!file.size) throw new Error('This image file is empty.');
+}
+
+export function normalizeInspirationURL(value) {
+  if (!String(value ?? '').trim()) return '';
+  let url;
+  try { url = new URL(String(value).trim()); } catch { throw new Error('Enter a complete image or source URL, starting with https:// or http://.'); }
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Use an http:// or https:// link without a username or password.');
+  return url.href;
+}
+
+function inspirationFields({ title, note, sourceUrl }) {
+  const cleanNote = String(note ?? '').trim();
+  if (cleanNote.length > 500) throw new Error('Keep the note to 500 characters or fewer.');
+  const cleanTitle = String(title ?? '').trim() || 'Untitled inspiration';
+  if (cleanTitle.length > 160) throw new Error('Keep the title to 160 characters or fewer.');
+  return { title: cleanTitle, note: cleanNote, sourceUrl: normalizeInspirationURL(sourceUrl) };
+}
+
+export async function listInspirations(roomId) {
+  if (!roomById(roomId)) throw new Error('Choose a valid room.');
+  const items = await transaction('inspirations', 'readonly', store => store.index('roomId').getAll(roomId));
+  return items.sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id));
+}
+
+export async function addInspiration({ roomId, blob, thumbnail, filename, width, height, ...fields }) {
+  if (!roomById(roomId)) throw new Error('Choose a valid room.');
+  if (!(blob instanceof Blob)) throw new Error('Choose an image file.');
+  validateImageFile(blob);
+  const item = { ...inspirationFields(fields), id: crypto.randomUUID(), roomId, blob, thumbnail, filename, width, height, createdAt: Date.now(), updatedAt: Date.now() };
+  await transaction('inspirations', 'readwrite', store => store.add(item));
+  return item;
+}
+
+export async function updateInspiration(id, changes) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('inspirations', 'readwrite');
+    const store = tx.objectStore('inspirations');
+    let result, failure;
+    const request = store.get(id);
+    request.onsuccess = () => {
+      try {
+        if (!request.result) throw new Error('This inspiration no longer exists.');
+        const allowed = Object.fromEntries(Object.entries(changes).filter(([key]) => ['title', 'note', 'sourceUrl'].includes(key)));
+        result = { ...request.result, ...inspirationFields({ ...request.result, ...allowed }), updatedAt: Date.now() };
+        store.put(result);
+      } catch (error) { failure = error; tx.abort(); }
+    };
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = tx.onabort = () => reject(failure || tx.error || new Error('Could not update the inspiration.'));
+  });
+}
+
+export const deleteInspiration = id => transaction('inspirations', 'readwrite', store => store.delete(id));
+
+export const listRoomNames = () => transaction('roomNames', 'readonly', store => store.getAll());
+export function saveRoomName(roomId, name) {
+  if (!roomById(roomId)) throw new Error('Choose a valid room.');
+  if (name === null) return transaction('roomNames', 'readwrite', store => store.delete(roomId));
+  const validated = validateRoomName(name);
+  return transaction('roomNames', 'readwrite', store => store.put({ roomId, name: validated, updatedAt: Date.now() }));
 }

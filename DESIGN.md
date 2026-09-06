@@ -125,7 +125,7 @@ The implemented system uses graphite surfaces, pale primary actions and restrain
 - Graphite surfaces separated by fine borders.
 - Image-led content with small role indicators and on-demand metadata.
 
-This is a scan of the implemented cascade: `src/theme.css` supplies root tokens; `src/main.js` loads `style.css`, `album.css`, `restyle.css`, `design-gallery.css`, then `desktop.css`. The final stylesheet defines the current desktop direction. Frontmatter keys matching root variables preserve their names; other keys name observed CSS literals, not new runtime variables. The scan did not resample browser computed styles.
+This is a scan of the implemented cascade: `src/theme.css` supplies root tokens; `src/main.js` loads `style.css`, `album.css`, `restyle.css`, `design-gallery.css`, then `desktop.css` and the scoped `inspiration.css` and `room-name.css` extensions. Desktop styles define the current direction; the extensions add room collections and inline room-name editing. Frontmatter keys matching root variables preserve their names; other keys name observed CSS literals, not new runtime variables. The scan did not resample browser computed styles.
 
 ## Colors
 
@@ -159,6 +159,10 @@ At (1100px) and below, the sidebar becomes (184px), the inspector (220px), and s
 
 The restyle dialog is capped at (880px) with a (40px) viewport allowance; at (620px) the allowance becomes (20px). The viewer fills the viewport. Older supporting styles retain narrow-screen details at (650px), (600px) and (520px); use the actual cascade when extending these surfaces.
 
+Design inspiration extends the room workspace with a flat contact sheet that auto-fills from (220px), with (28px) row and (20px) column gaps. Its inline composer places the image and fields in two columns, capped at (900px), and stacks at (900px) and below. At (620px), the contact sheet becomes one column. This is a local collection composition, not a replacement for source or version grids.
+
+Room-name editing opens beneath the room heading as a flat, border-separated form, capped at (680px). The field and action group wrap with available width. At (620px), the editor uses the mobile content inset and its actions flow beneath the field without the desktop alignment offset. Long room headings wrap; navigation and floor-plan labels truncate within their available space while retaining full accessible names.
+
 ## Elevation & Depth
 
 Depth comes primarily from different surface tones and thin borders. Image items have no outer card surface or shadow. Dialogs, the photo action menu, editor and toasts use restrained black shadows; the sidecar records their exact values. Modal backdrops darken without blur. Fullscreen image viewing uses a continuous dark canvas.
@@ -178,6 +182,10 @@ Use the documented small radius vocabulary: badges, thumbnails, controls, transi
 **Navigation.** Sidebar rows are at least (34px) high, with (15px) icons, muted labels, tabular counts and a tonal active background. Use `aria-current` for selection. Mobile navigation uses the native select. Mock/Real AI is a compact segmented choice with an explicit pressed state.
 
 **Images and status.** Image items use numeric, icon-led footers. A photo icon identifies the uploaded original, sparkles identify AI results, and a flask identifies mock previews; these sit in (28px) squares with (4px) corners. Amber triangles identify review warnings. The original-to-results arrow carries the relationship without repeated text headings. Full names, generation provenance and parent relationships remain in hover titles and accessible names; the viewer retains detailed review information. The source gallery pairs its image index with a layers icon and version count. Creation, refinement and deletion use labeled icon controls. The viewer's filmstrip uses reduced opacity for unselected thumbnails and a white border for the current image.
+
+**Room collections and inspiration.** Sources and Design inspiration use a thin separated navigation row with (13px) labels, a (42px) minimum height and an ink underline for the current collection. Inspiration previews use (4:3) cover cropping with the control radius, followed by a small title, source/edit/delete icons and an optional muted note. The composer is inline, separated by a bottom border; the draft image uses contain sizing. Fields retain the existing input treatment with (8px 10px) padding. At (620px), inspiration action targets grow to at least (40px), and input text uses (16px) to avoid iOS focus zoom. Deletion confirmation stays with the item; full-image viewing uses a bounded dialog with contain sizing.
+
+**Room-name editing.** The heading pencil inherits the compact icon control. Its inline form reuses the input surface, border and control radius with (8px 10px) field padding. Save uses the primary button, Cancel the secondary button and Reset to original a text action. The original name and length guidance sit beneath the field in muted label text; validation and save errors use an inline alert, and saving has a status announcement. Focus moves to the selected name on opening and back to the pencil on closing. At (620px), name input text becomes (16px) to avoid iOS focus zoom and Save, Cancel and the pencil have at least (40px) targets. Floor-plan labels use an ellipsis and full accessible names; the room SVG shortens its visual name after 16 characters while preserving the full name in its title. These are local label treatments, not a new typography scale.
 
 **Feedback and motion.** Fine-pointer controls use a subtle (0.98) press scale with (140ms) easing; image items do not scale. Source previews brighten on hover over (160ms). Filmstrip state transitions take (150ms). Generation status alone uses repeating (2s) pulses. The reduced-motion rule disables animations and transitions.
 

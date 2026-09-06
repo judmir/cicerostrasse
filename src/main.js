@@ -1,9 +1,9 @@
 import { createIcons, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image as ImageIcon } from 'lucide';
-import { rooms, roomById } from './rooms.js';
+import { rooms, roomById, applyRoomNames, setRoomDisplayName } from './rooms.js';
 import { createFloorplan } from './floorplan.js';
 import { renderRoomPlan } from './room-plan.js';
 import { createPhotoViewer } from './photo-viewer.js';
-import { listImages, addImage, updateImage, deleteImage, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
+import { listRoomNames, saveRoomName, listImages, addImage, updateImage, deleteImage, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
 import { createRestyleClient } from './restyle-client.js';
 import { createRestyleWizard } from './restyle-wizard.js';
 import { createSourceDeleteDialog } from './source-delete-dialog.js';
@@ -14,6 +14,10 @@ import './album.css';
 import './restyle.css';
 import './design-gallery.css';
 import './desktop.css';
+import './inspiration.css';
+import './room-name.css';
+import { createRoomNameEditor } from './room-name-editor.js';
+import { createInspirationGallery } from './inspiration-gallery.js';
 
 const icons = { ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image: ImageIcon };
 const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
@@ -22,6 +26,9 @@ const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) =>
 const refreshIcons = () => createIcons({ icons, attrs: { 'stroke-width': 1.6 } });
 let currentRoom = null;
 let currentRoot = null;
+let inspirationActive = false;
+let inspirationGallery;
+let roomNameEditor;
 let dataLoaded = false;
 let images = [];
 let plan;
@@ -53,12 +60,15 @@ $('#app').innerHTML = `
       <p class="plan-footnote">Dimensions from your measured plan · Layout schematic</p>
     </section>
     <section id="room-page" class="room-page" hidden aria-labelledby="room-title">
-      <div class="room-heading"><div class="room-heading-title"><h1 id="room-title"></h1><span id="room-meta"></span></div><div class="room-heading-actions"><button id="show-room-plan" class="button secondary" aria-controls="room-plan-sidebar" aria-expanded="false" hidden>${icon('panel-left-open')} Room info</button><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
+      <div class="room-heading"><div class="room-heading-title"><h1 id="room-title"></h1><button id="rename-room" class="icon-button" disabled aria-label="Rename room" title="Rename room">${icon('pencil')}</button><span id="room-meta"></span></div><div class="room-heading-actions"><button id="show-room-plan" class="button secondary" aria-controls="room-plan-sidebar" aria-expanded="false" hidden>${icon('panel-left-open')} Room info</button><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
+      <div id="room-name-editor" class="room-name-editor" hidden></div>
+      <nav class="room-collections" aria-label="Room collections"><a id="sources-link">Sources</a><a id="inspiration-link">Design inspiration</a></nav>
       <div class="room-layout">
         <aside id="room-plan-sidebar" class="room-plan-sidebar" aria-label="Room floor plan and dimensions"><div class="room-plan-heading"><h2>Room plan</h2><button id="hide-room-plan" class="icon-button" aria-label="Collapse room plan" aria-controls="room-plan-sidebar" aria-expanded="true">${icon('panel-left-close')}</button></div><div id="room-plan-content"></div><button id="view-measured-plan" class="text-button">View full plan ${icon('arrow-up-right')}</button></aside>
         <div class="room-gallery-content">
             <div id="upload-progress" class="upload-progress" role="status" aria-live="polite" hidden><span id="upload-progress-label"></span><progress id="upload-progress-bar" aria-label="Photo upload progress" value="0" max="1"></progress></div>
           <div id="gallery" aria-label="Source designs"></div>
+          <section id="inspiration-gallery" class="inspiration-gallery" aria-label="Design inspiration" hidden></section>
         </div>
       </div>
     </section>
@@ -136,7 +146,9 @@ async function refreshData() {
 }
 
 function navigate() {
-  const route = parseGalleryRoute(location.hash);
+  roomNameEditor?.hide();
+  inspirationActive = /^#\/room\/[a-z0-9]+\/inspiration$/.test(location.hash);
+  const route = parseGalleryRoute(inspirationActive ? location.hash.replace(/\/inspiration$/, '') : location.hash);
   const room = route && roomById(route.roomId);
   currentRoom = room?.id || null;
   currentRoot = room ? route.rootId : null;
@@ -149,6 +161,16 @@ function navigate() {
   $('#plan-page').hidden = !!currentRoom;
   $('#room-page').hidden = !currentRoom || !!currentRoot;
   $('#design-page').hidden = !currentRoot;
+  $('#gallery').hidden = inspirationActive;
+  $('#inspiration-gallery').hidden = !inspirationActive;
+  const sourcesLink = $('#sources-link'), inspirationLink = $('#inspiration-link');
+  sourcesLink.href = `#/room/${currentRoom}`;
+  inspirationLink.href = `#/room/${currentRoom}/inspiration`;
+  sourcesLink.toggleAttribute('aria-current', !inspirationActive);
+  inspirationLink.toggleAttribute('aria-current', inspirationActive);
+  (inspirationActive ? inspirationLink : sourcesLink).setAttribute('aria-current', 'page');
+  $('.room-heading .add-images').hidden = inspirationActive;
+  inspirationGallery?.setRoom(room || null, Boolean(room && inspirationActive));
   document.title = currentRoot ? `Design versions — ${room.name}` : currentRoom ? `${room.name} — Cicerostraße` : 'Floor plan — Cicerostraße';
   plan?.setVisible(!currentRoom);
   if (currentRoom) { renderGallery(); $('#room-plan-content').innerHTML = renderRoomPlan(room); applySidebarState(); }
@@ -230,6 +252,33 @@ function showDesign(image) {
   else location.hash = path;
 }
 
+function refreshRoomNames() {
+  for (const room of rooms) {
+    const link = $(`[data-nav-room="${room.id}"]`);
+    link.querySelector('span').textContent = room.name;
+    const count = groupDesigns(images, room.id).length;
+    const label = `${room.name} · ${count} ${count === 1 ? 'source' : 'sources'}`;
+    link.setAttribute('aria-label', label); link.title = label;
+    $(`#mobile-room-select option[value="${room.id}"]`).textContent = room.name;
+    $(`.room-links a[href="#/room/${room.id}"]`).textContent = room.name;
+  }
+  plan?.refreshNames();
+  if (currentRoom) {
+    renderGallery();
+    $('#room-plan-content').innerHTML = renderRoomPlan(roomById(currentRoom));
+    document.title = currentRoot ? `Design versions — ${roomById(currentRoom).name}` : `${roomById(currentRoom).name} — Cicerostraße`;
+    if (currentRoot) renderCurrentDesign().catch(handleError);
+  }
+  inspirationGallery?.refreshNames();
+}
+
+roomNameEditor = createRoomNameEditor($('#room-name-editor'), {
+  getRoom: () => roomById(currentRoom), save: saveRoomName, escape, icon, refreshIcons,
+  onSaved: (roomId, name) => { setRoomDisplayName(roomId, name); refreshRoomNames(); toast(`Room name saved: ${roomById(roomId).name}`); },
+});
+
+inspirationGallery = createInspirationGallery($('#inspiration-gallery'), { escape, icon, refreshIcons, readImage, notify: toast });
+
 sourceDeleteDialog = createSourceDeleteDialog($('#source-delete-dialog'), {
   escape,
   removeSource: async (id) => {
@@ -287,6 +336,7 @@ document.addEventListener('click', (event) => {
     if (family) sourceDeleteDialog.open(family.source, family.versions.length);
   }
   if (event.target.closest('.add-images') && currentRoom && !uploading) { uploadTarget = currentRoom; $('#image-upload').click(); }
+  if (event.target.closest('#rename-room')) roomNameEditor.open();
   if (event.target.closest('#hide-room-plan')) toggleRoomPlan(true);
   if (event.target.closest('#show-room-plan')) toggleRoomPlan(false);
   if (event.target.closest('#view-measured-plan')) $('#measured-plan-dialog').showModal();
@@ -298,7 +348,7 @@ window.addEventListener('dragenter', (event) => {
   if (!event.dataTransfer.types.includes('Files')) return;
   event.preventDefault();
   dragDepth++;
-  if (currentRoom && !document.querySelector('dialog[open]')) $('#drop-overlay').hidden = false;
+  if (currentRoom && !inspirationActive && !document.querySelector('dialog[open]')) $('#drop-overlay').hidden = false;
 }, events);
 window.addEventListener('dragover', (event) => {
   if (!event.dataTransfer.types.includes('Files')) return;
@@ -311,11 +361,12 @@ window.addEventListener('drop', (event) => {
   dragDepth = 0;
   $('#drop-overlay').hidden = true;
   if (!currentRoom) { toast('Open a room first to add images.'); return; }
+  if (inspirationActive) { toast('Use Upload image or paste an image in Design inspiration.'); return; }
   if (document.querySelector('dialog[open]')) { toast('Close the viewer before adding more photos.'); return; }
   uploadFiles(Array.from(event.dataTransfer.files), currentRoom);
 }, events);
 window.addEventListener('hashchange', navigate, events);
-window.addEventListener('beforeunload', (event) => { if (uploading || photoViewer?.busy || restyleWizard?.busy || restyleWizard?.unsaved || sourceDeleteDialog?.busy) { event.preventDefault(); event.returnValue = ''; } }, events);
+window.addEventListener('beforeunload', (event) => { if (uploading || roomNameEditor?.busy || inspirationGallery?.busy || photoViewer?.busy || restyleWizard?.busy || restyleWizard?.unsaved || sourceDeleteDialog?.busy) { event.preventDefault(); event.returnValue = ''; } }, events);
 
 try {
   plan = createFloorplan($('#floorplan'), (id) => { location.hash = `/room/${id}`; });
@@ -327,6 +378,7 @@ try {
 refreshIcons();
 navigate();
 refreshData().catch(handleError);
+listRoomNames().then(records => { if (!disposed) { applyRoomNames(records); refreshRoomNames(); } }).catch(handleError).finally(() => { if (!disposed) $('#rename-room').disabled = false; });
 
 const modelContext = document.modelContext || navigator.modelContext;
 if (modelContext?.registerTool) {
@@ -352,5 +404,7 @@ if (import.meta.hot) {
     designPage?.dispose();
     sourceDeleteDialog?.dispose();
     aiModeToggle?.dispose();
+    inspirationGallery?.dispose();
+    roomNameEditor?.dispose();
   });
 }
