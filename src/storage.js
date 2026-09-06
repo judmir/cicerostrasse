@@ -110,20 +110,25 @@ export function sourceSnapshot(image) {
 
 export async function saveRestyleVersion({ source, inspiration, result, rendered }) {
   if (!roomById(source?.roomId) || !source.id || !(source.blob instanceof Blob)) throw new Error('Choose a valid source design.');
-  validateImageFile(inspiration);
   validateImageFile(rendered.blob);
   if (!result?.requestId || !result.spec || !result.geometry) throw new Error('The Restyle result is incomplete.');
+  const operation = result.operation === 'refine' ? 'refine' : 'restyle';
+  if (operation === 'restyle') validateImageFile(inspiration);
+  if (operation === 'refine' && (typeof result.instruction !== 'string' || !result.instruction.trim())) throw new Error('The refinement is missing its edit request.');
   const now = Date.now();
+  const mode = result.mode === 'mock' ? 'mock' : 'real';
   const image = {
     id: crypto.randomUUID(), roomId: source.roomId, blob: rendered.blob, thumbnail: rendered.thumbnail,
-    width: rendered.width, height: rendered.height, title: `${source.title} · ${result.spec.styleName}`,
-    filename: `restyle-${result.requestId}.png`, caption: '', createdAt: now, updatedAt: now,
+    width: rendered.width, height: rendered.height, title: `${source.title} · ${operation === 'refine' ? 'Refinement' : result.spec.styleName}`,
+    filename: `${mode === 'mock' ? 'mock-' : ''}restyle-${result.requestId}.png`, caption: '', createdAt: now, updatedAt: now, mode,
     parentImageId: source.id, rootImageId: source.rootImageId || source.id, restyleId: result.requestId,
-    geometryStatus: result.geometry.status,
+    geometryStatus: result.geometry.status, restyleOperation: operation,
+    restyleInstruction: operation === 'refine' ? result.instruction.trim() : null,
   };
   const record = {
-    requestId: result.requestId, imageId: image.id, source: sourceSnapshot(source),
-    inspiration: { blob: inspiration, filename: inspiration.name || 'inspiration' },
+    requestId: result.requestId, imageId: image.id, mode, source: sourceSnapshot(source),
+    operation, instruction: operation === 'refine' ? result.instruction.trim() : null,
+    inspiration: operation === 'restyle' ? { blob: inspiration, filename: inspiration.name || 'inspiration' } : null,
     spec: result.spec, geometry: result.geometry, models: result.models, prompt: result.prompt,
     providerIds: result.providerIds, createdAt: result.createdAt || now,
   };

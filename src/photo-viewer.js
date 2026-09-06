@@ -1,7 +1,7 @@
 import { createAlbum } from './album.js';
-import { geometrySummary, styleSummary } from './restyle-presenter.js';
+import { geometrySummary, styleSummary, refinementSummary } from './restyle-presenter.js';
 
-export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, updatePhoto, removePhoto, readImage, handleError, notify, onRestyle, getVersions, onViewVersion }) {
+export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, updatePhoto, removePhoto, readImage, handleError, notify, onRestyle, getVersions, onViewVersion, onShowDesign }) {
   dialog.classList.add('album-viewer');
   const album = createAlbum();
   const $ = (selector) => dialog.querySelector(selector);
@@ -16,13 +16,16 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
   let versionURLs = [];
   let versionRequest = 0;
   let relatedVersions = [];
+  let comparisonOpener;
+  let versionNumbers = new Map();
 
   dialog.innerHTML = `
     <div class="album-shell">
-      <header class="album-toolbar"><h2 id="image-dialog-title"></h2><span id="album-counter" role="status" aria-live="polite"></span><div class="album-toolbar-actions"><button id="album-versions-open" class="album-version-button" ${getVersions ? '' : 'hidden'}>Versions</button><button id="album-more" class="album-icon-button" aria-label="Photo actions" aria-expanded="false" aria-controls="album-actions">${icon('ellipsis')}</button><button id="album-close" class="album-icon-button" aria-label="Close photo viewer">${icon('x')}</button></div></header>
+      <header class="album-toolbar"><h2 id="image-dialog-title"></h2><span id="album-counter" role="status" aria-live="polite"></span><div class="album-toolbar-actions"><button id="album-more" class="album-icon-button" aria-label="Photo actions" aria-expanded="false" aria-controls="album-actions">${icon('ellipsis')}</button><button id="album-close" class="album-icon-button" aria-label="Close photo viewer">${icon('x')}</button></div></header>
       <div id="album-stage" class="album-stage"><button id="album-previous" class="album-arrow previous" aria-label="Previous photo">${icon('chevron-left')}</button><img id="album-photo" alt="" draggable="false"/><button id="album-next" class="album-arrow next" aria-label="Next photo">${icon('chevron-right')}</button></div>
+      <div class="album-design-actions" role="group" aria-label="Design actions"><button id="album-versions-open" class="button secondary" ${getVersions ? '' : 'hidden'}>${icon('history')} Versions</button><button id="album-compare" class="button secondary" hidden>${icon('image')} Compare</button><button id="album-restyle" data-action="restyle" class="button primary" ${onRestyle ? '' : 'hidden'}>${icon('sparkles')} <span>Restyle</span></button></div>
       <nav id="album-filmstrip" class="album-filmstrip" aria-label="Album thumbnails"></nav>
-      <div id="album-actions" class="album-actions" role="group" aria-label="Photo actions" hidden><button data-action="restyle" ${onRestyle ? '' : 'hidden'}>${icon('sparkles')} Restyle</button><button data-action="edit">${icon('pencil')} Edit details</button><button data-action="replace">${icon('refresh-cw')} Replace photo</button><button data-action="download">${icon('download')} Download photo</button><button data-action="delete" class="danger">${icon('trash-2')} Delete photo</button></div>
+      <div id="album-actions" class="album-actions" role="group" aria-label="Photo actions" hidden><button data-action="edit">${icon('pencil')} Edit details</button><button data-action="replace">${icon('refresh-cw')} Replace photo</button><button data-action="download">${icon('download')} Download photo</button><button data-action="delete" class="danger">${icon('trash-2')} Delete photo</button></div>
       <aside id="album-versions" class="album-versions" aria-label="Design versions" hidden></aside>
       <aside id="album-editor" class="album-editor" aria-labelledby="album-editor-title" hidden><div class="dialog-heading"><h3 id="album-editor-title">Edit photo</h3><button id="album-editor-close" class="icon-button" aria-label="Close photo editor">${icon('x')}</button></div><form id="album-edit-form"><label for="album-title">Title</label><input id="album-title" maxlength="160" required/><label for="album-caption">Caption</label><textarea id="album-caption" rows="3" maxlength="5000" placeholder="Add a note…"></textarea><label for="album-room">Room</label><select id="album-room">${rooms.map((room) => `<option value="${room.id}">${room.name}</option>`).join('')}</select><button class="button primary full-width" type="submit">Save changes</button></form></aside>
       <input id="album-replace-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" hidden/>
@@ -38,7 +41,7 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
     thumbnails = [];
   }
 
-  function clearVersions() { versionRequest++; versionURLs.forEach((url) => URL.revokeObjectURL(url)); versionURLs = []; relatedVersions = []; $('#album-versions').hidden = true; }
+  function clearVersions() { versionRequest++; versionURLs.forEach((url) => URL.revokeObjectURL(url)); versionURLs = []; relatedVersions = []; $('#album-versions').hidden = true; $('.album-shell').classList.remove('comparing'); }
   function panelsOpen() { return !$('#album-editor').hidden || !$('#album-confirm').hidden || !$('#album-versions').hidden; }
   function closeMenu() { $('#album-actions').hidden = true; $('#album-more').setAttribute('aria-expanded', 'false'); }
   function resetPanels() {
@@ -58,8 +61,14 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
     imageURL = URL.createObjectURL(photo.blob);
     $('#album-photo').src = imageURL;
     $('#album-photo').alt = photo.title || `Photo ${album.index + 1}`;
-    $('[data-action="replace"]').hidden = Boolean(photo.restyleId);
-    $('#image-dialog-title').textContent = roomName;
+    $('[data-action="replace"]').hidden = Boolean(photo.restyleId || photo.archivedSource);
+    $('[data-action="edit"]').hidden = Boolean(photo.archivedSource);
+    $('[data-action="delete"]').hidden = Boolean(photo.archivedSource);
+    const identity = photo.restyleId ? `Version ${versionNumbers.get(photo.id) || album.index + 1}` : 'Original';
+    $('#image-dialog-title').textContent = `${roomName} · ${identity}${photo.mode === 'mock' ? ' · Mock preview' : ''}`;
+    $('#album-restyle span').textContent = photo.restyleId ? 'Refine' : 'Restyle';
+    $('#album-compare').hidden = !photo.restyleId || !getVersions;
+    $('#album-compare').title = photo.geometryStatus !== 'no_changes_detected' ? 'Compare images and review changes' : 'Compare with the saved source';
     $('#album-counter').textContent = `${album.index + 1} of ${album.length}`;
     $('#album-previous').disabled = !album.hasPrevious || busy;
     $('#album-next').disabled = !album.hasNext || busy;
@@ -83,6 +92,8 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
     $('#album-close').disabled = value;
     $('#album-more').disabled = value;
     $('#album-versions-open').disabled = value;
+    $('#album-compare').disabled = value;
+    $('#album-restyle').disabled = value;
     $('#album-editor-close').disabled = value;
     $('#album-edit-form button').disabled = value;
     $('#album-delete').disabled = value;
@@ -117,7 +128,7 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
     const open = $('#album-actions').hidden;
     $('#album-actions').hidden = !open;
     $('#album-more').setAttribute('aria-expanded', String(open));
-    if (open) $('#album-actions button').focus();
+    if (open) $('#album-actions button:not([hidden])').focus();
   }, events);
   $('#album-filmstrip').addEventListener('click', (event) => {
     const button = event.target.closest('[data-photo]');
@@ -138,8 +149,6 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
       $('#album-room').value = photo.roomId;
       $('#album-editor').hidden = false;
       $('#album-title').focus();
-    } else if (action === 'restyle') {
-      dialog.close(); onRestyle?.(photo);
     } else if (action === 'replace') {
       $('#album-replace-input').click();
     } else if (action === 'download') {
@@ -154,14 +163,27 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
       $('#album-keep').focus();
     }
   }, events);
+  $('#album-restyle').addEventListener('click', () => {
+    if (busy || !album.current) return;
+    const photo = album.current;
+    dialog.close(); onRestyle?.(photo);
+  }, events);
   $('#album-versions-open').addEventListener('click', async () => {
+    if (!busy && album.current && onShowDesign) { const photo = album.current; dialog.close(); onShowDesign(photo); return; }
+    await showComparison($('#album-versions-open'));
+  }, events);
+  $('#album-compare').addEventListener('click', () => showComparison($('#album-compare')), events);
+  async function showComparison(trigger) {
     if (busy || !album.current || !getVersions) return;
     resetPanels();
+    comparisonOpener = trigger;
     const token = ++versionRequest;
     const photo = album.current;
     const panel = $('#album-versions');
     panel.hidden = false;
-    panel.innerHTML = '<p role="status">Loading versions…</p>';
+    panel.innerHTML = `<div class="album-versions-heading"><h3>Compare</h3><button class="icon-button" data-close-versions aria-label="Close comparison">${icon('x')}</button></div><p role="status">Loading comparison…</p>`;
+    $('.album-shell').classList.add('comparing');
+    refreshIcons(); panel.querySelector('[data-close-versions]').focus();
     try {
       const { record, related } = await getVersions(photo);
       if (token !== versionRequest || !dialog.open) return;
@@ -170,14 +192,14 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
         const url = URL.createObjectURL(blob); versionURLs.push(url);
         return `<figure><figcaption>${escape(label)}</figcaption><div class="restyle-preview"><img src="${url}" alt="${escape(label)}"/></div></figure>`;
       };
-      panel.innerHTML = `<div class="album-versions-heading"><h3>Design versions</h3><button class="icon-button" data-close-versions aria-label="Close versions">${icon('x')}</button></div>
-        ${record ? `<div class="restyle-comparison">${figure(record.source.blob, 'Source design')}${figure(photo.blob, 'Restyled version')}</div>${geometrySummary(record.geometry, escape)}${styleSummary(record.spec, escape)}` : '<p class="restyle-help">Source design. Restyled versions keep a snapshot of this image.</p>'}
-        <nav class="album-version-list" aria-label="Related versions">${related.map((item) => `<button data-version="${item.id}" aria-current="${item.id === photo.id}">${escape(item.title)}</button>`).join('')}</nav>`;
+      panel.innerHTML = `<div class="album-versions-heading"><h3>Compare</h3><button class="icon-button" data-close-versions aria-label="Close comparison">${icon('x')}</button></div>
+        ${record ? `${record.mode === 'mock' ? '<p class="restyle-mock-note">Mock preview · No AI generation or geometry check.</p>' : ''}<div class="restyle-comparison">${figure(record.source.blob, record.operation === 'refine' ? 'Previous version' : 'Source design')}${figure(photo.blob, record.operation === 'refine' ? 'Refined version' : 'Restyled version')}</div>${geometrySummary(record.geometry, escape)}${record.operation === 'refine' ? refinementSummary(record.instruction, escape) : styleSummary(record.spec, escape)}` : '<p class="restyle-help">No saved comparison is available for this image.</p>'}
+        ${!onShowDesign ? `<nav class="album-version-list" aria-label="Related versions">${related.map((item) => `<button data-version="${escape(item.id)}" aria-current="${item.id === photo.id}">${item.restyleId ? `Version ${versionNumbers.get(item.id) || ''}` : 'Source'}</button>`).join('')}</nav>` : ''}`;
       refreshIcons(); panel.querySelector('[data-close-versions]').focus();
     } catch { if (token === versionRequest) panel.innerHTML = '<p role="alert">Could not load versions.</p><button class="button secondary" data-close-versions>Close</button>'; }
-  }, events);
+  }
   $('#album-versions').addEventListener('click', (event) => {
-    if (event.target.closest('[data-close-versions]')) { clearVersions(); $('#album-versions-open').focus(); }
+    if (event.target.closest('[data-close-versions]')) { clearVersions(); comparisonOpener?.focus(); }
     const id = event.target.closest('[data-version]')?.dataset.version;
     const photo = relatedVersions.find((item) => item.id === id);
     if (photo) { clearVersions(); onViewVersion?.(photo); }
@@ -208,13 +230,13 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
   }, events);
   dialog.addEventListener('cancel', (event) => {
     if (busy) { event.preventDefault(); return; }
-    if (panelsOpen() || !$('#album-actions').hidden) { event.preventDefault(); resetPanels(); $('#album-more').focus(); }
+    if (panelsOpen() || !$('#album-actions').hidden) { const comparing = !$('#album-versions').hidden; event.preventDefault(); resetPanels(); (comparing ? comparisonOpener : $('#album-more'))?.focus(); }
   }, events);
   dialog.addEventListener('close', () => {
     releaseURLs();
     resetPanels();
     document.body.classList.remove('album-open');
-    const focusTarget = opener?.isConnected ? opener : document.querySelector(`[data-image="${album.current?.id}"]`) || document.querySelector('#gallery .add-images');
+    const focusTarget = opener?.isConnected ? opener : document.querySelector(`[data-view-image="${album.current?.id}"]`) || document.querySelector('[data-source-preview]') || document.querySelector('#gallery .add-images');
     focusTarget?.focus({ preventScroll: true });
   }, events);
   $('#album-stage').addEventListener('pointerdown', (event) => {
@@ -235,6 +257,7 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
     open(id, photos, name) {
       opener = document.activeElement;
       roomName = name;
+      versionNumbers = new Map(photos.filter((photo) => photo.restyleId).map((photo, index) => [photo.id, index + 1]));
       album.setPhotos(photos);
       if (!album.select(id)) return;
       resetPanels();
@@ -243,7 +266,7 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
       draw();
       $('#album-close').focus();
     },
-    setPhotos(photos) { album.setPhotos(photos); if (!busy) draw(); },
+    setPhotos(photos) { versionNumbers = new Map(photos.filter((photo) => photo.restyleId).map((photo, index) => [photo.id, index + 1])); album.setPhotos(photos); if (!busy) draw(); },
     get busy() { return busy; },
     dispose() { lifecycle.abort(); releaseURLs(); dialog.close(); document.body.classList.remove('album-open'); },
   };

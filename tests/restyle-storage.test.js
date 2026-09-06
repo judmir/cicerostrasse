@@ -46,6 +46,28 @@ test('concurrent completion is idempotent by request ID', async () => {
   assert.equal((await listImages()).filter((item) => item.restyleId === data.result.requestId).length, 1);
 });
 
+test('mock versions retain mode provenance, source links and distinct download filenames', async () => {
+  const data = await fixture(); data.result.mode = 'mock';
+  data.result.models = { reasoning: 'local-mock-style-v1', image: 'local-mock-image-v1' };
+  const saved = await saveRestyleVersion(data);
+  assert.equal(saved.mode, 'mock'); assert.match(saved.filename, /^mock-restyle-/);
+  assert.equal(saved.parentImageId, data.source.id);
+  const record = await getRestyleRecord(saved.restyleId);
+  assert.equal(record.mode, 'mock'); assert.equal(record.models.image, 'local-mock-image-v1');
+  assert.equal(await record.source.blob.text(), 'original');
+  assert.equal((await saveRestyleVersion(data)).id, saved.id);
+});
+
+test('refinements save their request without requiring a second inspiration image', async () => {
+  const data = await fixture(); const first = await saveRestyleVersion(data);
+  const result = { ...resultFixture(crypto.randomUUID()), operation: 'refine', instruction: 'Replace the sofa with a curved cream sofa.' };
+  const saved = await saveRestyleVersion({ ...data, source: first, inspiration: null, result });
+  const record = await getRestyleRecord(saved.restyleId);
+  assert.equal(saved.parentImageId, first.id); assert.equal(saved.rootImageId, data.source.id);
+  assert.equal(saved.restyleOperation, 'refine'); assert.equal(saved.restyleInstruction, result.instruction);
+  assert.equal(record.operation, 'refine'); assert.equal(record.instruction, result.instruction); assert.equal(record.inspiration, null);
+});
+
 test('aborted provenance write leaves no partial image and can retry with the same result', async () => {
   const data = await fixture(); const previous = IDBObjectStore.prototype.add;
   IDBObjectStore.prototype.add = function (...args) {

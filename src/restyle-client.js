@@ -68,5 +68,5 @@ export function createRestyleClient({ bridge = globalThis.window?.restyleAI, fet
 
 export function resultFile(result) {
   const data = Uint8Array.from(atob(result.image.base64), (character) => character.charCodeAt(0));
-  return new File([data], `restyle-${result.requestId}.png`, { type: 'image/png' });
+  return new File([data], `${result.mode === 'mock' ? 'mock-' : ''}restyle-${result.requestId}.png`, { type: 'image/png' });
 }

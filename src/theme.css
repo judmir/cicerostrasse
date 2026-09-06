@@ -1,15 +1,18 @@
 :root {
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'SFMono-Regular', Consolas, monospace;
-  --ink: #e6e9ef;
-  --muted: #a1a9b7;
-  --blue: #a8bfff;
+  --ink: #e8e8ea;
+  --muted: #a1a1a8;
+  --blue: #ced1dc;
   --white: #ffffff;
-  --background: #15171b;
-  --surface: #1e2229;
-  --surface-hover: #2b313b;
-  --input: #181b21;
-  --border: #343b47;
+  --background: #1c1c1f;
+  --surface: #242427;
+  --surface-hover: #303034;
+  --input: #1c1c1f;
+  --border: #363639;
+  --sidebar: #202023;
+  --selection: #353539;
+  --subtle-border: #2e2e32;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   color-scheme: dark;
 }

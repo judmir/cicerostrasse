@@ -58,6 +58,28 @@ test('style extraction, source-only edit, geometry check run in order with stric
   assert.deepEqual(result.geometry, geometry);
 });
 
+test('a refinement edits the current version directly and checks only for unexpected drift', async () => {
+  const mock = provider({ extraction: completed(geometry) }); const stages = [];
+  const instruction = 'Replace the sofa with a curved cream sofa.';
+  const result = await runRestyle({ requestId: 'refine-test-001', source, operation: 'refine', instruction }, {
+    client: mock.client, onProgress: (stage) => stages.push(stage),
+  });
+  assert.deepEqual(stages, ['extracting', 'rendering', 'checking']);
+  assert.deepEqual(mock.calls.map((call) => call.type), ['image', 'reasoning']);
+  assert.match(mock.calls[0].args.prompt, /one contained edit/);
+  assert.match(mock.calls[0].args.prompt, /curved cream sofa/);
+  assert.match(mock.calls[1].args.input[0].content, /targeted change was requested/);
+  assert.equal(result.operation, 'refine'); assert.equal(result.instruction, instruction);
+  assert.match(result.spec.styleName, /Refinement/);
+});
+
+test('a refinement requires one bounded edit request before calling a model', async () => {
+  const mock = provider();
+  await assert.rejects(runRestyle({ requestId: 'refine-test-002', source, operation: 'refine', instruction: ' ' }, { client: mock.client }), { code: 'invalid_refinement' });
+  await assert.rejects(runRestyle({ requestId: 'refine-test-003', source, operation: 'refine', instruction: 'a'.repeat(601) }, { client: mock.client }), { code: 'invalid_refinement' });
+  assert.equal(mock.calls.length, 0);
+});
+
 test('rejects injected geometry fields, malformed spec and refusal before rendering', async () => {
   for (const extraction of [completed({ ...spec, layout: 'Move the walls' }), completed({}), { status: 'completed', output: [{ content: [{ type: 'refusal' }] }] }]) {
     const mock = provider({ extraction });

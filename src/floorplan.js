@@ -10,7 +10,7 @@ export function createRoomMesh(room) {
     else shape.lineTo(x, -z);
   });
   shape.closePath();
-  const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: '#252d39' }));
+  const floor = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color: '#2a2a30' }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.012;
   floor.userData.roomId = room.id;
@@ -39,7 +39,7 @@ export function createFloorplan(container, onSelect) {
   let visible = true;
   let labelCounts = {};
 
-  function line(points, color = '#90a0b8', height = 0.035, opacity = 1) {
+  function line(points, color = '#9c9ca8', height = 0.035, opacity = 1) {
     const vectors = points.map((point) => {
       const [x, z] = worldPoint(point);
       return new THREE.Vector3(x, height, z);
@@ -70,10 +70,10 @@ export function createFloorplan(container, onSelect) {
 
   function horizontalDimension(start, end, baseline, startWall, endWall, value) {
     const direction = baseline < startWall ? -1 : 1;
-    const color = '#617188';
+    const color = '#6b6b77';
     line([[start, baseline], [end, baseline]], color);
     for (const [x, wall] of [[start, startWall], [end, endWall]]) {
-      line([[x, wall + direction * 15], [x, baseline + direction * 9]], '#3a485e');
+      line([[x, wall + direction * 15], [x, baseline + direction * 9]], '#44444d');
       line([[x - 6, baseline + 6], [x + 6, baseline - 6]], color);
     }
     dimensionLabel(value, [(start + end) / 2, baseline - 23]);
@@ -81,10 +81,10 @@ export function createFloorplan(container, onSelect) {
 
   function verticalDimension(start, end, baseline, wall, value) {
     const direction = baseline < wall ? -1 : 1;
-    const color = '#617188';
+    const color = '#6b6b77';
     line([[baseline, start], [baseline, end]], color);
     for (const y of [start, end]) {
-      line([[wall + direction * 15, y], [baseline + direction * 9, y]], '#3a485e');
+      line([[wall + direction * 15, y], [baseline + direction * 9, y]], '#44444d');
       line([[baseline - 6, y + 6], [baseline + 6, y - 6]], color);
     }
     dimensionLabel(value, [baseline - 23, (start + end) / 2], true);
@@ -136,9 +136,9 @@ export function createFloorplan(container, onSelect) {
   }
 
   for (const [x1, y1, x2, y2] of walls) {
-    const mesh = box((x1 + x2) / 2, (y1 + y2) / 2, Math.abs(x2 - x1) + 10, Math.abs(y2 - y1) + 10, 0.2, '#93a1b7');
+    const mesh = box((x1 + x2) / 2, (y1 + y2) / 2, Math.abs(x2 - x1) + 10, Math.abs(y2 - y1) + 10, 0.2, '#a0a0ab');
     mesh.userData.wall = true;
-    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color: '#586b85' }));
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color: '#686874' }));
     mesh.add(edges);
   }
   for (const [x1, y1, x2, y2] of windows) {
@@ -176,7 +176,7 @@ export function createFloorplan(container, onSelect) {
   function paint() {
     for (const floor of floors) {
       const room = rooms.find((item) => item.id === floor.userData.roomId);
-      floor.material.color.set(room.id === hovered ? '#354969' : '#252d39');
+      floor.material.color.set(room.id === hovered ? '#40404b' : '#2a2a30');
     }
     for (const label of labels) {
       label.element.classList.toggle('hovered', label.room.id === hovered);

@@ -1,4 +1,4 @@
-import { createIcons, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles } from 'lucide';
+import { createIcons, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image as ImageIcon } from 'lucide';
 import { rooms, roomById } from './rooms.js';
 import { createFloorplan } from './floorplan.js';
 import { renderRoomPlan } from './room-plan.js';
@@ -6,53 +6,68 @@ import { createPhotoViewer } from './photo-viewer.js';
 import { listImages, addImage, updateImage, deleteImage, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
 import { createRestyleClient } from './restyle-client.js';
 import { createRestyleWizard } from './restyle-wizard.js';
+import { createSourceDeleteDialog } from './source-delete-dialog.js';
+import { createAIModeToggle } from './ai-mode.js';
+import { createDesignPage, groupDesigns, renderSourceCards, parseGalleryRoute, designPath, designRoot } from './design-gallery.js';
 import './style.css';
 import './album.css';
 import './restyle.css';
+import './design-gallery.css';
+import './desktop.css';
 
-const icons = { ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles };
+const icons = { ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image: ImageIcon };
 const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
 const $ = (selector) => document.querySelector(selector);
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const refreshIcons = () => createIcons({ icons, attrs: { 'stroke-width': 1.6 } });
 let currentRoom = null;
+let currentRoot = null;
+let dataLoaded = false;
 let images = [];
 let plan;
 let galleryURLs = [];
 let photoViewer;
 let restyleWizard;
+let designPage;
+let sourceDeleteDialog;
+let aiModeToggle;
 let uploadTarget;
 let uploading = false;
 let toastTimer;
 let disposed = false;
-let planCollapsed = false;
-try { planCollapsed = localStorage.getItem('cicero-room-plan-collapsed') === 'true'; } catch { /* Use the open default if preferences are unavailable. */ }
+let planCollapsed = true;
+try { planCollapsed = localStorage.getItem('cicero-room-plan-collapsed') !== 'false'; } catch { /* Keep measurements on demand when preferences are unavailable. */ }
 
 $('#app').innerHTML = `
-  <header class="site-header"><a class="wordmark" href="#/">${icon('layout-dashboard')} Cicerostraße</a><span class="header-caption">My apartment</span></header>
+  <aside class="app-sidebar" aria-label="Apartment navigation">
+    <a class="wordmark" href="#/">${icon('layout-dashboard')} Cicerostraße</a>
+    <nav class="app-navigation" aria-label="Rooms"><a class="sidebar-link" href="#/" data-nav-overview>${icon('layout-dashboard')}<span>Floor plan</span></a><p class="sidebar-section-label">Rooms</p>${rooms.map((room) => `<a class="sidebar-link" href="#/room/${room.id}" data-nav-room="${room.id}">${icon('image')}<span>${room.name}</span><span class="sidebar-count" data-room-count="${room.id}"></span></a>`).join('')}</nav>
+    <div class="sidebar-footer"><div id="global-ai-mode" class="global-ai-mode"><span class="global-ai-label">Generation</span><div class="global-ai-toggle" role="group" aria-label="AI connection"><button data-ai-mode="mock" aria-pressed="true">Mock</button><button data-ai-mode="real" aria-pressed="false">Real AI</button></div><span class="global-ai-description" data-ai-mode-description>No API charges</span></div><p class="device-status">Saved on this device</p></div>
+  </aside>
+  <header class="mobile-header"><a class="wordmark" href="#/">Cicerostraße</a><label class="room-switcher"><span class="restyle-live">Navigate to a room</span><select id="mobile-room-select"><option value="">Floor plan</option>${rooms.map((room) => `<option value="${room.id}">${room.name}</option>`).join('')}</select></label></header>
   <main>
     <section id="plan-page" class="plan-page" aria-label="Apartment floor plan">
-      <div class="plan-intro"><h1>Floor plan</h1><p>Select a room.</p></div>
+      <div class="plan-intro"><h1>Floor plan</h1><span>Select a room to view its images</span></div>
       <div class="apartment-plan-viewport"><div id="floorplan"></div></div>
       <nav class="room-links" aria-label="Open a room gallery">${rooms.map((room) => `<a href="#/room/${room.id}">${room.name}</a>`).join('')}</nav>
       <p class="plan-footnote">Dimensions from your measured plan · Layout schematic</p>
     </section>
     <section id="room-page" class="room-page" hidden aria-labelledby="room-title">
-      <div class="room-navigation"><a href="#/" class="back-link">${icon('arrow-left')} Floor plan</a><button id="show-room-plan" class="text-button" aria-controls="room-plan-sidebar" aria-expanded="false" hidden>${icon('panel-left-open')} Room plan</button></div>
+      <div class="room-heading"><div class="room-heading-title"><h1 id="room-title"></h1><span id="room-meta"></span></div><div class="room-heading-actions"><button id="show-room-plan" class="button secondary" aria-controls="room-plan-sidebar" aria-expanded="false" hidden>${icon('panel-left-open')} Room info</button><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
       <div class="room-layout">
         <aside id="room-plan-sidebar" class="room-plan-sidebar" aria-label="Room floor plan and dimensions"><div class="room-plan-heading"><h2>Room plan</h2><button id="hide-room-plan" class="icon-button" aria-label="Collapse room plan" aria-controls="room-plan-sidebar" aria-expanded="true">${icon('panel-left-close')}</button></div><div id="room-plan-content"></div><button id="view-measured-plan" class="text-button">View full plan ${icon('arrow-up-right')}</button></aside>
-        <div class="room-gallery-content"><div class="room-heading"><div><h1 id="room-title"></h1><p id="room-meta"></p></div><div class="room-heading-actions"><button id="start-restyle" class="button secondary">${icon('sparkles')} Restyle</button><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
+        <div class="room-gallery-content">
             <div id="upload-progress" class="upload-progress" role="status" aria-live="polite" hidden><span id="upload-progress-label"></span><progress id="upload-progress-bar" aria-label="Photo upload progress" value="0" max="1"></progress></div>
-          <div id="gallery" aria-label="Room image gallery"></div>
-          <p class="gallery-footnote" hidden>Drop more images anywhere on this page.</p>
+          <div id="gallery" aria-label="Source designs"></div>
         </div>
       </div>
     </section>
+    <section id="design-page" class="design-page" hidden aria-labelledby="design-title"></section>
   </main>
-  <footer class="site-footer"><span>Saved on this device</span></footer>
   <input id="image-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple hidden />
   <dialog id="image-dialog" class="album-viewer" aria-labelledby="image-dialog-title"></dialog>
   <dialog id="restyle-dialog" class="restyle-dialog" aria-labelledby="restyle-title"></dialog>
+  <dialog id="source-delete-dialog" class="source-delete-dialog" aria-labelledby="source-delete-title" aria-describedby="source-delete-description"></dialog>
   <dialog id="measured-plan-dialog" class="measured-plan-dialog" aria-labelledby="measured-plan-title"><div class="dialog-heading"><h2 id="measured-plan-title">Full floor plan</h2><button class="icon-button close-measured-plan" aria-label="Close full floor plan">${icon('x')}</button></div><div class="measured-reference-window"><img src="./measured-floorplan.jpeg" alt="Supplied measured apartment drawing. Küche 2.17 by 4.06 meters, Bad 1.46 by 4.06, middle room 2.93 by 4.06, right room 3.45 by 5.85, left room 4.52 by 4.67, Flur 6.72 by 1.71, and balcony 4.40 by 1.37."/></div><p>Room names in this drawing differ from the first plan. Your galleries keep their original room assignments.</p></dialog>
   <div id="drop-overlay" hidden>${icon('upload')}<span>Drop images to add them to <strong id="drop-room"></strong></span></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
@@ -79,52 +94,70 @@ function clearGalleryURLs() {
 function renderGallery() {
   if (!currentRoom) return;
   const room = roomById(currentRoom);
-  const roomImages = images.filter((item) => item.roomId === currentRoom);
+  const families = groupDesigns(images, currentRoom);
   clearGalleryURLs();
   $('#room-title').textContent = room.name;
-  $('#room-meta').textContent = `${room.type} · ${roomImages.length} ${roomImages.length === 1 ? 'image' : 'images'}`;
+  $('#room-meta').textContent = `${families.length} ${families.length === 1 ? 'source' : 'sources'}`;
   $('#drop-room').textContent = room.name;
-  $('.gallery-footnote').hidden = !roomImages.length;
-  if (!roomImages.length) {
-    $('#gallery').innerHTML = `<div class="empty-gallery">${icon('image-plus')}<h2>Drop images here</h2><button class="text-button add-images">or choose files</button><p>JPG, PNG, WebP, GIF, AVIF · up to 25 MB each</p></div>`;
+  if (!families.length) {
+    $('#gallery').innerHTML = `<div class="empty-gallery">${icon('image-plus')}<h2>No images yet</h2><p>Drop images here, or add them from your files.</p><button class="button secondary add-images">${icon('plus')} Add images</button><small>JPG, PNG, WebP, GIF, AVIF · 25 MB each</small></div>`;
   } else {
-    $('#gallery').innerHTML = `<div class="gallery-grid">${roomImages.map((item) => {
-      const url = URL.createObjectURL(item.thumbnail || item.blob);
-      galleryURLs.push(url);
-      return `<button class="image-card" data-image="${item.id}" aria-label="Open ${escape(item.title)}"><div class="image-card-photo"><img src="${url}" alt="${escape(item.title)}" loading="lazy" decoding="async"/>${item.restyleId ? `<span class="version-badge">${item.geometryStatus === 'no_changes_detected' ? 'Restyled' : 'Review needed'}</span>` : ''}</div></button>`;
-    }).join('')}</div>`;
+    $('#gallery').innerHTML = renderSourceCards(families, { roomId: currentRoom, escape, icon,
+      imageURL: (blob) => { const url = URL.createObjectURL(blob); galleryURLs.push(url); return url; },
+    });
   }
   document.querySelectorAll('.add-images').forEach((button) => { button.disabled = uploading; });
-  $('#start-restyle').disabled = !roomImages.length;
   refreshIcons();
+}
+
+async function renderCurrentDesign(focusHeading = false) {
+  if (!currentRoot || !currentRoom) return;
+  const families = groupDesigns(images, currentRoom);
+  const index = families.findIndex((family) => family.rootId === currentRoot);
+  await designPage.render(families[index], { room: roomById(currentRoom), number: index + 1, loading: !dataLoaded, focusHeading });
 }
 
 async function refreshData() {
   const savedImages = await listImages();
   if (disposed) return;
   images = savedImages;
+  dataLoaded = true;
+  for (const room of rooms) {
+    const count = groupDesigns(images, room.id).length;
+    $(`[data-room-count="${room.id}"]`).textContent = count || '';
+    const label = `${room.name} · ${count} ${count === 1 ? 'source' : 'sources'}`;
+    $(`[data-nav-room="${room.id}"]`).setAttribute('aria-label', label);
+    $(`[data-nav-room="${room.id}"]`).title = label;
+  }
   plan?.setCounts(Object.fromEntries(rooms.map((room) => [room.id, images.filter((item) => item.roomId === room.id).length])));
   renderGallery();
-  photoViewer?.setPhotos(images.filter((item) => item.roomId === currentRoom));
+  await renderCurrentDesign();
+  photoViewer?.setPhotos(currentRoot ? designPage.photos : images.filter((item) => item.roomId === currentRoom));
 }
 
 function navigate() {
-  const match = location.hash.match(/^#\/room\/([a-z0-9]+)$/);
-  const room = match && roomById(match[1]);
+  const route = parseGalleryRoute(location.hash);
+  const room = route && roomById(route.roomId);
   currentRoom = room?.id || null;
+  currentRoot = room ? route.rootId : null;
+  document.querySelectorAll('[data-nav-room]').forEach((link) => { if (link.dataset.navRoom === currentRoom) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); });
+  if (!currentRoom) $('[data-nav-overview]').setAttribute('aria-current', 'page'); else $('[data-nav-overview]').removeAttribute('aria-current');
+  $('#mobile-room-select').value = currentRoom || '';
   $('#image-dialog').close();
   $('#measured-plan-dialog').close();
   $('#drop-overlay').hidden = true;
   $('#plan-page').hidden = !!currentRoom;
-  $('#room-page').hidden = !currentRoom;
-  document.title = currentRoom ? `${room.name} — Cicerostraße` : 'Floor plan — Cicerostraße';
+  $('#room-page').hidden = !currentRoom || !!currentRoot;
+  $('#design-page').hidden = !currentRoot;
+  document.title = currentRoot ? `Design versions — ${room.name}` : currentRoom ? `${room.name} — Cicerostraße` : 'Floor plan — Cicerostraße';
   plan?.setVisible(!currentRoom);
   if (currentRoom) { renderGallery(); $('#room-plan-content').innerHTML = renderRoomPlan(room); applySidebarState(); }
   else { clearGalleryURLs(); plan?.resize(); }
+  if (currentRoot) renderCurrentDesign(true).catch(handleError);
+  else designPage?.hide();
   window.scrollTo(0, 0);
-  const heading = currentRoom ? $('#room-title') : $('.plan-intro h1');
-  heading.tabIndex = -1;
-  heading.focus({ preventScroll: true });
+  const heading = currentRoot ? $('#design-title') : currentRoom ? $('#room-title') : $('.plan-intro h1');
+  if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
 }
 
 function applySidebarState() {
@@ -160,6 +193,7 @@ async function readImage(file) {
 async function uploadFiles(files, roomId) {
   if (!files.length || !roomById(roomId)) return;
   if (uploading) { toast('Please wait for the current upload to finish.'); return; }
+  if (currentRoot) location.hash = `/room/${roomId}`;
   uploading = true;
   document.querySelectorAll('.add-images').forEach((button) => { button.disabled = true; });
   let added = 0;
@@ -186,24 +220,56 @@ async function uploadFiles(files, roomId) {
 }
 
 function viewVersion(image) {
-  const open = () => photoViewer.open(image.id, images.filter((item) => item.roomId === image.roomId), roomById(image.roomId)?.name || 'Photos');
-  if (image.roomId !== currentRoom) {
-    window.addEventListener('hashchange', open, { once: true });
-    location.hash = `/room/${image.roomId}`;
-  } else open();
+  photoViewer.open(image.id, currentRoot ? designPage.photos : images.filter((item) => designRoot(item) === designRoot(image)), roomById(image.roomId)?.name || 'Design');
 }
+
+function showDesign(image) {
+  const roomId = currentRoom && groupDesigns(images, currentRoom).some((family) => family.rootId === designRoot(image)) ? currentRoom : image.roomId;
+  const path = designPath(roomId, designRoot(image));
+  if (location.hash === path) renderCurrentDesign(true).catch(handleError);
+  else location.hash = path;
+}
+
+sourceDeleteDialog = createSourceDeleteDialog($('#source-delete-dialog'), {
+  escape,
+  removeSource: async (id) => {
+    await deleteImage(id);
+    await refreshData();
+    if (currentRoot === id && !groupDesigns(images, currentRoom).some((family) => family.rootId === id)) location.hash = `/room/${currentRoom}`;
+    toast('Source deleted');
+  },
+  restoreFocus: () => {
+    const target = currentRoot ? $('#design-title') : $('.room-heading .add-images');
+    if (target) { if (currentRoot) target.tabIndex = -1; target.focus({ preventScroll: true }); }
+  },
+});
+
+designPage = createDesignPage($('#design-page'), {
+  escape, icon, refreshIcons, getRecord: getRestyleRecord,
+  onView: (image, family) => photoViewer.open(image.id, family, roomById(currentRoom)?.name || 'Design'),
+  onRestyle: (source) => restyleWizard.open([source], source.id, { lockSource: true }),
+  onRefine: (version) => restyleWizard.open([version], version.id, { lockSource: true, flow: 'refine' }),
+  onDelete: (source, versionCount) => sourceDeleteDialog.open(source, versionCount),
+});
 
 restyleWizard = createRestyleWizard($('#restyle-dialog'), {
   client: createRestyleClient(), escape, readImage, saveVersion: saveRestyleVersion,
-  onSaved: async () => { await refreshData(); toast('Restyled version saved'); },
-  onView: viewVersion, getPhotos: (roomId) => images.filter((item) => item.roomId === roomId),
+  onSaved: async () => { await refreshData(); toast('New version saved'); },
+  onView: showDesign, getPhotos: (roomId) => images.filter((item) => item.roomId === roomId),
+  onStateChange: () => aiModeToggle?.refresh(),
+});
+
+aiModeToggle = createAIModeToggle($('#global-ai-mode'), {
+  isLocked: () => Boolean(restyleWizard?.busy),
+  onLocked: () => toast('Wait for the current Restyle to finish or cancel it before switching AI mode.'),
 });
 
 photoViewer = createPhotoViewer($('#image-dialog'), {
   rooms, icon, escape, refreshIcons, readImage, handleError, notify: toast,
   updatePhoto: async (id, changes) => { await updateImage(id, changes); await refreshData(); },
   removePhoto: async (id) => { await deleteImage(id); await refreshData(); },
-  onRestyle: (photo) => restyleWizard.open(images.filter((item) => item.roomId === photo.roomId), photo.id),
+  onRestyle: (photo) => restyleWizard.open([photo], photo.id, { lockSource: true, flow: photo.restyleId ? 'refine' : 'restyle' }),
+  onShowDesign: showDesign,
   onViewVersion: viewVersion,
   getVersions: async (photo) => ({
     record: photo.restyleId ? await getRestyleRecord(photo.restyleId) : null,
@@ -213,11 +279,14 @@ photoViewer = createPhotoViewer($('#image-dialog'), {
 
 const lifecycle = new AbortController();
 const events = { signal: lifecycle.signal };
+$('#mobile-room-select').addEventListener('change', (event) => { location.hash = event.target.value ? `/room/${event.target.value}` : '/'; }, events);
 document.addEventListener('click', (event) => {
-  if (event.target.closest('#start-restyle') && currentRoom) restyleWizard.open(images.filter((item) => item.roomId === currentRoom));
+  const deleteId = event.target.closest('[data-delete-source]')?.dataset.deleteSource;
+  if (deleteId && currentRoom) {
+    const family = groupDesigns(images, currentRoom).find((item) => item.source?.id === deleteId);
+    if (family) sourceDeleteDialog.open(family.source, family.versions.length);
+  }
   if (event.target.closest('.add-images') && currentRoom && !uploading) { uploadTarget = currentRoom; $('#image-upload').click(); }
-  const imageButton = event.target.closest('[data-image]');
-  if (imageButton) photoViewer.open(imageButton.dataset.image, images.filter((item) => item.roomId === currentRoom), roomById(currentRoom)?.name || 'Photos');
   if (event.target.closest('#hide-room-plan')) toggleRoomPlan(true);
   if (event.target.closest('#show-room-plan')) toggleRoomPlan(false);
   if (event.target.closest('#view-measured-plan')) $('#measured-plan-dialog').showModal();
@@ -246,7 +315,7 @@ window.addEventListener('drop', (event) => {
   uploadFiles(Array.from(event.dataTransfer.files), currentRoom);
 }, events);
 window.addEventListener('hashchange', navigate, events);
-window.addEventListener('beforeunload', (event) => { if (uploading || photoViewer?.busy || restyleWizard?.busy || restyleWizard?.unsaved) { event.preventDefault(); event.returnValue = ''; } }, events);
+window.addEventListener('beforeunload', (event) => { if (uploading || photoViewer?.busy || restyleWizard?.busy || restyleWizard?.unsaved || sourceDeleteDialog?.busy) { event.preventDefault(); event.returnValue = ''; } }, events);
 
 try {
   plan = createFloorplan($('#floorplan'), (id) => { location.hash = `/room/${id}`; });
@@ -280,5 +349,8 @@ if (import.meta.hot) {
     clearGalleryURLs();
     photoViewer?.dispose();
     restyleWizard?.dispose();
+    designPage?.dispose();
+    sourceDeleteDialog?.dispose();
+    aiModeToggle?.dispose();
   });
 }

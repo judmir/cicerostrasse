@@ -1,0 +1,600 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-06T14:28:10.454Z",
+  "title": "Design System: Cicerostraße",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Pale text",
+        "tonalRamp": [
+          "oklch(15% 0.0027 286.3)",
+          "oklch(26% 0.0027 286.3)",
+          "oklch(38% 0.0027 286.3)",
+          "oklch(49% 0.0027 286.3)",
+          "oklch(61% 0.0027 286.3)",
+          "oklch(72% 0.0027 286.3)",
+          "oklch(84% 0.0027 286.3)",
+          "oklch(95% 0.0027 286.3)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted gray",
+        "tonalRamp": [
+          "oklch(15% 0.0101 286.1)",
+          "oklch(26% 0.0101 286.1)",
+          "oklch(38% 0.0101 286.1)",
+          "oklch(49% 0.0101 286.1)",
+          "oklch(61% 0.0101 286.1)",
+          "oklch(72% 0.0101 286.1)",
+          "oklch(84% 0.0101 286.1)",
+          "oklch(95% 0.0101 286.1)"
+        ]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "Lavender-gray utility",
+        "tonalRamp": [
+          "oklch(15% 0.0155 273.8)",
+          "oklch(26% 0.0155 273.8)",
+          "oklch(38% 0.0155 273.8)",
+          "oklch(49% 0.0155 273.8)",
+          "oklch(61% 0.0155 273.8)",
+          "oklch(72% 0.0155 273.8)",
+          "oklch(84% 0.0155 273.8)",
+          "oklch(95% 0.0155 273.8)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Graphite workspace",
+        "tonalRamp": [
+          "oklch(15% 0.0057 285.9)",
+          "oklch(26% 0.0057 285.9)",
+          "oklch(38% 0.0057 285.9)",
+          "oklch(49% 0.0057 285.9)",
+          "oklch(61% 0.0057 285.9)",
+          "oklch(72% 0.0057 285.9)",
+          "oklch(84% 0.0057 285.9)",
+          "oklch(95% 0.0057 285.9)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Raised graphite",
+        "tonalRamp": [
+          "oklch(15% 0.0055 286.0)",
+          "oklch(26% 0.0055 286.0)",
+          "oklch(38% 0.0055 286.0)",
+          "oklch(49% 0.0055 286.0)",
+          "oklch(61% 0.0055 286.0)",
+          "oklch(72% 0.0055 286.0)",
+          "oklch(84% 0.0055 286.0)",
+          "oklch(95% 0.0055 286.0)"
+        ]
+      },
+      "surface-hover": {
+        "role": "neutral",
+        "displayName": "Surface Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0071 286.0)",
+          "oklch(26% 0.0071 286.0)",
+          "oklch(38% 0.0071 286.0)",
+          "oklch(49% 0.0071 286.0)",
+          "oklch(61% 0.0071 286.0)",
+          "oklch(72% 0.0071 286.0)",
+          "oklch(84% 0.0071 286.0)",
+          "oklch(95% 0.0071 286.0)"
+        ]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "Inset graphite",
+        "tonalRamp": [
+          "oklch(15% 0.0057 285.9)",
+          "oklch(26% 0.0057 285.9)",
+          "oklch(38% 0.0057 285.9)",
+          "oklch(49% 0.0057 285.9)",
+          "oklch(61% 0.0057 285.9)",
+          "oklch(72% 0.0057 285.9)",
+          "oklch(84% 0.0057 285.9)",
+          "oklch(95% 0.0057 285.9)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Border",
+        "tonalRamp": [
+          "oklch(15% 0.0052 286.1)",
+          "oklch(26% 0.0052 286.1)",
+          "oklch(38% 0.0052 286.1)",
+          "oklch(49% 0.0052 286.1)",
+          "oklch(61% 0.0052 286.1)",
+          "oklch(72% 0.0052 286.1)",
+          "oklch(84% 0.0052 286.1)",
+          "oklch(95% 0.0052 286.1)"
+        ]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Graphite navigation",
+        "tonalRamp": [
+          "oklch(15% 0.0056 286.0)",
+          "oklch(26% 0.0056 286.0)",
+          "oklch(38% 0.0056 286.0)",
+          "oklch(49% 0.0056 286.0)",
+          "oklch(61% 0.0056 286.0)",
+          "oklch(72% 0.0056 286.0)",
+          "oklch(84% 0.0056 286.0)",
+          "oklch(95% 0.0056 286.0)"
+        ]
+      },
+      "selection": {
+        "role": "neutral",
+        "displayName": "Selected graphite",
+        "tonalRamp": [
+          "oklch(15% 0.0070 286.0)",
+          "oklch(26% 0.0070 286.0)",
+          "oklch(38% 0.0070 286.0)",
+          "oklch(49% 0.0070 286.0)",
+          "oklch(61% 0.0070 286.0)",
+          "oklch(72% 0.0070 286.0)",
+          "oklch(84% 0.0070 286.0)",
+          "oklch(95% 0.0070 286.0)"
+        ]
+      },
+      "subtle-border": {
+        "role": "neutral",
+        "displayName": "Subtle Border",
+        "tonalRamp": [
+          "oklch(15% 0.0071 286.0)",
+          "oklch(26% 0.0071 286.0)",
+          "oklch(38% 0.0071 286.0)",
+          "oklch(49% 0.0071 286.0)",
+          "oklch(61% 0.0071 286.0)",
+          "oklch(72% 0.0071 286.0)",
+          "oklch(84% 0.0071 286.0)",
+          "oklch(95% 0.0071 286.0)"
+        ]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Pale action",
+        "tonalRamp": [
+          "oklch(15% 0.0067 286.3)",
+          "oklch(26% 0.0067 286.3)",
+          "oklch(38% 0.0067 286.3)",
+          "oklch(49% 0.0067 286.3)",
+          "oklch(61% 0.0067 286.3)",
+          "oklch(72% 0.0067 286.3)",
+          "oklch(84% 0.0067 286.3)",
+          "oklch(95% 0.0067 286.3)"
+        ]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Primary Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0027 286.4)",
+          "oklch(26% 0.0027 286.4)",
+          "oklch(38% 0.0027 286.4)",
+          "oklch(49% 0.0027 286.4)",
+          "oklch(61% 0.0027 286.4)",
+          "oklch(72% 0.0027 286.4)",
+          "oklch(84% 0.0027 286.4)",
+          "oklch(95% 0.0027 286.4)"
+        ]
+      },
+      "primary-text": {
+        "role": "primary",
+        "displayName": "Primary Text",
+        "tonalRamp": [
+          "oklch(15% 0.0074 285.9)",
+          "oklch(26% 0.0074 285.9)",
+          "oklch(38% 0.0074 285.9)",
+          "oklch(49% 0.0074 285.9)",
+          "oklch(61% 0.0074 285.9)",
+          "oklch(72% 0.0074 285.9)",
+          "oklch(84% 0.0074 285.9)",
+          "oklch(95% 0.0074 285.9)"
+        ]
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "Secondary",
+        "tonalRamp": [
+          "oklch(15% 0.0073 285.9)",
+          "oklch(26% 0.0073 285.9)",
+          "oklch(38% 0.0073 285.9)",
+          "oklch(49% 0.0073 285.9)",
+          "oklch(61% 0.0073 285.9)",
+          "oklch(72% 0.0073 285.9)",
+          "oklch(84% 0.0073 285.9)",
+          "oklch(95% 0.0073 285.9)"
+        ]
+      },
+      "secondary-hover": {
+        "role": "neutral",
+        "displayName": "Secondary Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0088 285.9)",
+          "oklch(26% 0.0088 285.9)",
+          "oklch(38% 0.0088 285.9)",
+          "oklch(49% 0.0088 285.9)",
+          "oklch(61% 0.0088 285.9)",
+          "oklch(72% 0.0088 285.9)",
+          "oklch(84% 0.0088 285.9)",
+          "oklch(95% 0.0088 285.9)"
+        ]
+      },
+      "secondary-text": {
+        "role": "neutral",
+        "displayName": "Secondary Text",
+        "tonalRamp": [
+          "oklch(15% 0.0082 286.2)",
+          "oklch(26% 0.0082 286.2)",
+          "oklch(38% 0.0082 286.2)",
+          "oklch(49% 0.0082 286.2)",
+          "oklch(61% 0.0082 286.2)",
+          "oklch(72% 0.0082 286.2)",
+          "oklch(84% 0.0082 286.2)",
+          "oklch(95% 0.0082 286.2)"
+        ]
+      },
+      "secondary-border": {
+        "role": "neutral",
+        "displayName": "Secondary Border",
+        "tonalRamp": [
+          "oklch(15% 0.0101 285.9)",
+          "oklch(26% 0.0101 285.9)",
+          "oklch(38% 0.0101 285.9)",
+          "oklch(49% 0.0101 285.9)",
+          "oklch(61% 0.0101 285.9)",
+          "oklch(72% 0.0101 285.9)",
+          "oklch(84% 0.0101 285.9)",
+          "oklch(95% 0.0101 285.9)"
+        ]
+      },
+      "destructive": {
+        "role": "neutral",
+        "displayName": "Muted red",
+        "tonalRamp": [
+          "oklch(15% 0.1366 17.4)",
+          "oklch(26% 0.1366 17.4)",
+          "oklch(38% 0.1366 17.4)",
+          "oklch(49% 0.1366 17.4)",
+          "oklch(61% 0.1366 17.4)",
+          "oklch(72% 0.1366 17.4)",
+          "oklch(84% 0.1366 17.4)",
+          "oklch(95% 0.1366 17.4)"
+        ]
+      },
+      "focus-ring": {
+        "role": "neutral",
+        "displayName": "Focus Ring",
+        "tonalRamp": [
+          "oklch(15% 0.0712 270.8)",
+          "oklch(26% 0.0712 270.8)",
+          "oklch(38% 0.0712 270.8)",
+          "oklch(49% 0.0712 270.8)",
+          "oklch(61% 0.0712 270.8)",
+          "oklch(72% 0.0712 270.8)",
+          "oklch(84% 0.0712 270.8)",
+          "oklch(95% 0.0712 270.8)"
+        ]
+      },
+      "preview": {
+        "role": "neutral",
+        "displayName": "Dark image canvas",
+        "tonalRamp": [
+          "oklch(15% 0.0060 285.8)",
+          "oklch(26% 0.0060 285.8)",
+          "oklch(38% 0.0060 285.8)",
+          "oklch(49% 0.0060 285.8)",
+          "oklch(61% 0.0060 285.8)",
+          "oklch(72% 0.0060 285.8)",
+          "oklch(84% 0.0060 285.8)",
+          "oklch(95% 0.0060 285.8)"
+        ]
+      },
+      "nav-hover": {
+        "role": "neutral",
+        "displayName": "Nav Hover",
+        "tonalRamp": [
+          "oklch(15% 0.0072 285.9)",
+          "oklch(26% 0.0072 285.9)",
+          "oklch(38% 0.0072 285.9)",
+          "oklch(49% 0.0072 285.9)",
+          "oklch(61% 0.0072 285.9)",
+          "oklch(72% 0.0072 285.9)",
+          "oklch(84% 0.0072 285.9)",
+          "oklch(95% 0.0072 285.9)"
+        ]
+      },
+      "nav-text": {
+        "role": "neutral",
+        "displayName": "Nav Text",
+        "tonalRamp": [
+          "oklch(15% 0.0098 286.2)",
+          "oklch(26% 0.0098 286.2)",
+          "oklch(38% 0.0098 286.2)",
+          "oklch(49% 0.0098 286.2)",
+          "oklch(61% 0.0098 286.2)",
+          "oklch(72% 0.0098 286.2)",
+          "oklch(84% 0.0098 286.2)",
+          "oklch(95% 0.0098 286.2)"
+        ]
+      },
+      "nav-active-text": {
+        "role": "neutral",
+        "displayName": "Nav Active Text",
+        "tonalRamp": [
+          "oklch(15% 0.0027 286.3)",
+          "oklch(26% 0.0027 286.3)",
+          "oklch(38% 0.0027 286.3)",
+          "oklch(49% 0.0027 286.3)",
+          "oklch(61% 0.0027 286.3)",
+          "oklch(72% 0.0027 286.3)",
+          "oklch(84% 0.0027 286.3)",
+          "oklch(95% 0.0027 286.3)"
+        ]
+      },
+      "review-bg": {
+        "role": "neutral",
+        "displayName": "Review Bg",
+        "tonalRamp": [
+          "oklch(15% 0.0129 72.3)",
+          "oklch(26% 0.0129 72.3)",
+          "oklch(38% 0.0129 72.3)",
+          "oklch(49% 0.0129 72.3)",
+          "oklch(61% 0.0129 72.3)",
+          "oklch(72% 0.0129 72.3)",
+          "oklch(84% 0.0129 72.3)",
+          "oklch(95% 0.0129 72.3)"
+        ]
+      },
+      "review-text": {
+        "role": "neutral",
+        "displayName": "Review Text",
+        "tonalRamp": [
+          "oklch(15% 0.0591 80.4)",
+          "oklch(26% 0.0591 80.4)",
+          "oklch(38% 0.0591 80.4)",
+          "oklch(49% 0.0591 80.4)",
+          "oklch(61% 0.0591 80.4)",
+          "oklch(72% 0.0591 80.4)",
+          "oklch(84% 0.0591 80.4)",
+          "oklch(95% 0.0591 80.4)"
+        ]
+      },
+      "mock-bg": {
+        "role": "neutral",
+        "displayName": "Mock Bg",
+        "tonalRamp": [
+          "oklch(15% 0.0129 285.5)",
+          "oklch(26% 0.0129 285.5)",
+          "oklch(38% 0.0129 285.5)",
+          "oklch(49% 0.0129 285.5)",
+          "oklch(61% 0.0129 285.5)",
+          "oklch(72% 0.0129 285.5)",
+          "oklch(84% 0.0129 285.5)",
+          "oklch(95% 0.0129 285.5)"
+        ]
+      },
+      "mock-text": {
+        "role": "neutral",
+        "displayName": "Mock Text",
+        "tonalRamp": [
+          "oklch(15% 0.0095 286.2)",
+          "oklch(26% 0.0095 286.2)",
+          "oklch(38% 0.0095 286.2)",
+          "oklch(49% 0.0095 286.2)",
+          "oklch(61% 0.0095 286.2)",
+          "oklch(72% 0.0095 286.2)",
+          "oklch(84% 0.0095 286.2)",
+          "oklch(95% 0.0095 286.2)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Route heading",
+        "purpose": "Compact room and floor-plan headings."
+      },
+      "title": {
+        "displayName": "Section and image title",
+        "purpose": "Sections, image captions and action labels."
+      },
+      "body": {
+        "displayName": "Body and field",
+        "purpose": "Working text and form content."
+      },
+      "label": {
+        "displayName": "Metadata",
+        "purpose": "Counts, provenance, help and status."
+      }
+    },
+    "shadows": [
+      {
+        "name": "dialog",
+        "value": "0 20px 70px #0006",
+        "purpose": "Standard dialogs."
+      },
+      {
+        "name": "photo-actions",
+        "value": "0 12px 40px #0005",
+        "purpose": "Photo action menu."
+      },
+      {
+        "name": "photo-editor",
+        "value": "0 16px 60px #0006",
+        "purpose": "Photo editor overlay."
+      },
+      {
+        "name": "photo-confirmation",
+        "value": "0 20px 70px #0004",
+        "purpose": "Confirmation panel inside the photo viewer."
+      },
+      {
+        "name": "toast",
+        "value": "0 6px 30px #00000044",
+        "purpose": "Transient feedback."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Root easing variable for fine-pointer control press feedback."
+      },
+      {
+        "name": "control-feedback",
+        "value": "140ms",
+        "purpose": "Fine-pointer controls: transform plus background and text changes; press scale .98."
+      },
+      {
+        "name": "source-preview-hover",
+        "value": "filter 160ms ease",
+        "purpose": "Source image brightness changes to 1.06 on hover."
+      },
+      {
+        "name": "filmstrip-state",
+        "value": "opacity .15s, border-color .15s",
+        "purpose": "Filmstrip hover and current-image selection."
+      },
+      {
+        "name": "generation-status",
+        "value": "2s ease-in-out infinite / 2s ease-out infinite",
+        "purpose": "Status opacity and ring pulse respectively."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none !important; transition: none !important",
+        "purpose": "Global prefers-reduced-motion: reduce override."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide-source-grid",
+        "value": "min-width: 1500px"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "max-width: 1100px"
+      },
+      {
+        "name": "narrow-workspace",
+        "value": "max-width: 800px"
+      },
+      {
+        "name": "mobile-shell",
+        "value": "max-width: 620px"
+      },
+      {
+        "name": "supporting-restyle",
+        "value": "max-width: 650px"
+      },
+      {
+        "name": "supporting-viewer",
+        "value": "max-width: 600px"
+      },
+      {
+        "name": "floorplan-room-links",
+        "value": "max-width: 520px"
+      }
+    ],
+    "provenance": {
+      "sourceFiles": [
+        "src/theme.css",
+        "src/style.css",
+        "src/album.css",
+        "src/restyle.css",
+        "src/design-gallery.css",
+        "src/desktop.css",
+        "src/main.js",
+        "src/design-gallery.js",
+        "src/photo-viewer.js",
+        "src/restyle-wizard.js"
+      ],
+      "authority": "Implemented CSS and markup, with desktop.css loaded last. User-pinned North Star: Restrained desktop workspace. Updated after user refinement: spatial original-to-generated lineage with numeric icon footers, not repeated text labels.",
+      "limitations": "Source scan, not a fresh browser computed-style sample. Component snippets capture representative controls, not all application behavior. Supporting styles retain narrow-screen rules that are not a separate global spacing system.",
+      "tonalRamps": "Illustrative metadata only: synthesized OKLCH lightness steps preserve the source RGB hue/chroma and omit source alpha. These are not runtime palette tokens or approved additional colors."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Compact primary action, as used for adding images and restyling.",
+      "html": "<button class=\"ds-primary\" type=\"button\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>Add images</button>",
+      "css": ".ds-primary{font-family:var(--font-sans,-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:5px 10px;font-size:13px;font-weight:500;line-height:1.4;border-radius:5px;cursor:pointer;white-space:nowrap;transition:background .15s;border:0;background:#e3e3e8;color:#252529;box-shadow:none}.ds-primary:hover{background:#f5f5f7}.ds-primary:focus-visible{outline:2px solid #8e9dcc;outline-offset:3px}.ds-primary:disabled{opacity:.5;cursor:default}@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.ds-primary{transition:transform 140ms var(--ease-out,cubic-bezier(.23,1,.32,1)),background-color 140ms ease,color 140ms ease}.ds-primary:active:not(:disabled){transform:scale(.98)}}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none;animation:none}}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Bordered supporting action, as used for canceling or downloading.",
+      "html": "<button class=\"ds-secondary\" type=\"button\">Cancel</button>",
+      "css": ".ds-secondary{font-family:var(--font-sans,-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:30px;padding:5px 10px;font-size:13px;font-weight:500;line-height:1.4;border-radius:5px;cursor:pointer;white-space:nowrap;transition:background .15s;border:1px solid #424248;background:#27272b;color:#d0d0d6}.ds-secondary:hover{background:#333338}.ds-secondary:focus-visible{outline:2px solid #8e9dcc;outline-offset:3px}.ds-secondary:disabled{opacity:.5;cursor:default}@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.ds-secondary{transition:transform 140ms var(--ease-out,cubic-bezier(.23,1,.32,1)),background-color 140ms ease,color 140ms ease}.ds-secondary:active:not(:disabled){transform:scale(.98)}}@media(prefers-reduced-motion:reduce){.ds-secondary{transition:none;animation:none}}"
+    },
+    {
+      "name": "Photo title field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "The labeled title input from the photo editor, with the actual editor field treatment.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-photo-title\">Title</label><input class=\"ds-field-input\" id=\"ds-photo-title\" value=\"Raum 3\" maxlength=\"160\" required /></div>",
+      "css": ".ds-field{font-family:var(--font-sans,-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);width:265px;max-width:100%;color:var(--ink,#e8e8ea)}.ds-field-label{display:block;font-size:13px;line-height:1.45;color:var(--muted,#a1a1a8);margin:16px 0 8px}.ds-field-input{font-family:var(--font-sans,-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);width:100%;padding:10px;border:1px solid var(--border,#363639);border-radius:5px;background:var(--input,#1c1c1f);color:var(--ink,#e8e8ea);font-size:14px;line-height:1.45;caret-color:var(--ink,#e8e8ea)}.ds-field-input:focus-visible{outline:2px solid #8e9dcc;outline-offset:3px}"
+    },
+    {
+      "name": "Room navigation",
+      "kind": "nav",
+      "refersTo": "navigation-item",
+      "description": "A current room and an unselected room, with tonal selection and tabular source counts.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Rooms\"><a class=\"ds-nav-link\" href=\"#/room/raum3\" aria-current=\"page\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-4-4L7 21\"/></svg><span>Raum 3</span><span class=\"ds-nav-count\">3</span></a><a class=\"ds-nav-link\" href=\"#/room/kuche\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-4-4L7 21\"/></svg><span>Küche</span><span class=\"ds-nav-count\">1</span></a></nav>",
+      "css": ".ds-nav{font-family:var(--font-sans,-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);width:184px;max-width:100%;padding:7px 10px;background:var(--sidebar,#202023);font-size:14px;line-height:1.45}.ds-nav-link{display:flex;align-items:center;gap:10px;min-height:34px;padding:6px 10px;border-radius:5px;margin-bottom:2px;color:#b8b8bf;text-decoration:none}.ds-nav-link svg{width:15px;height:15px;flex-shrink:0;color:#929299}.ds-nav-link:hover{background:#2a2a2e;color:var(--ink,#e8e8ea)}.ds-nav-link[aria-current]{background:var(--selection,#353539);color:#f1f1f3}.ds-nav-link[aria-current] svg{color:#cacad0}.ds-nav-count{margin-left:auto;font-size:12px;color:var(--muted,#a1a1a8);font-variant-numeric:tabular-nums}.ds-nav-link:focus-visible{outline:2px solid #8e9dcc;outline-offset:3px}"
+    },
+    {
+      "name": "Source image item",
+      "kind": "card",
+      "refersTo": "image-item",
+      "description": "Flat, icon-led original image item with source index and generated-version count; full details appear in hover title and accessible name. The neutral rectangle is a preview placeholder, not shipping artwork.",
+      "html": "<article class=\"ds-source\"><a class=\"ds-source-link\" href=\"#/room/raum3/design/sample\" aria-label=\"Open original 1: Raum 3. 2 generated versions\" title=\"Original 1: Raum 3. 2 generated versions\"><div class=\"ds-source-preview\" role=\"img\" aria-label=\"Neutral image placeholder\"></div><div class=\"ds-source-caption\" aria-hidden=\"true\"><span class=\"ds-image-index\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-4-4L7 21\"/></svg>1</span><span class=\"ds-image-index\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5\"/></svg>2</span></div></a></article>",
+      "css": ".ds-source{font-family:var(--font-sans,-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);position:relative;display:block;width:240px;max-width:100%;min-width:0;border:0;border-radius:0;background:transparent;color:var(--ink,#e8e8ea);line-height:1.45}.ds-source-link{display:block;color:inherit;text-decoration:none}.ds-source-preview{position:relative;aspect-ratio:4/3;overflow:hidden;border:1px solid var(--subtle-border,#2e2e32);border-radius:5px;background:#151518}.ds-source-preview img{display:block;width:100%;height:100%;object-fit:cover;transition:filter 160ms ease}.ds-source-link:hover img{filter:brightness(1.06)}.ds-source-caption{display:flex;justify-content:space-between;align-items:center;padding:8px 36px 0 0;min-height:38px;gap:8px}.ds-image-index{display:inline-flex;align-items:center;gap:7px;color:var(--muted,#a1a1a8);font-size:12px;font-variant-numeric:tabular-nums}.ds-source-link:focus-visible{outline:2px solid #8e9dcc;outline-offset:-4px}.ds-source-link:active{transform:none}@media(prefers-reduced-motion:reduce){.ds-source-preview img{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Restrained desktop workspace",
+    "overview": "A compact, neutral image workspace with native macOS familiarity and the restraint the user associates with Linear and Raycast. Images carry the visual interest; system type, fine separators and precise alignment make navigation and editing feel quiet and direct.\n\nThe implemented system uses graphite surfaces, pale primary actions and restrained status color. Keep controls compact and content flat. Dashboard decoration, gradients, nested cards, oversized headings or containers, and excessive pills are outside the confirmed direction.",
+    "keyCharacteristics": [
+      "Compact system typography and controls.",
+      "Graphite surfaces separated by fine borders.",
+      "Image-led content with small role indicators and on-demand metadata."
+    ],
+    "rules": [
+      {
+        "name": "Image First",
+        "body": "Give images the visual weight; keep navigation, captions and status subordinate.",
+        "section": "colors"
+      },
+      {
+        "name": "Flat at Rest",
+        "body": "Keep workspace content flat; reserve shadows for overlays and transient feedback.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use the existing system font, restrained neutral palette and compact control geometry.",
+      "Do retain visible keyboard focus, accessible icon labels and explicit selected states.",
+      "Do use real source imagery and keep version provenance readable.",
+      "Do use a consistent inline SVG icon vocabulary with a 1.6 stroke width."
+    ],
+    "donts": [
+      "Don't add gradients, dashboard decoration or nested cards.",
+      "Don't enlarge headings or wrap ordinary workspace content in large rounded containers.",
+      "Don't turn ordinary metadata into pills or add decorative motion.",
+      "Don't use the illustrative tonal ramps in the sidecar as new runtime colors."
+    ]
+  }
+}

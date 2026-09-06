@@ -41,7 +41,7 @@ test('HTTP and Electron deliver the same result and progress from the shared run
   assert.deepEqual(events.at(-1).result, desktopResult.result);
   assert.deepEqual(events.filter((event) => event.type === 'progress').map((event) => event.stage), desktop.progress);
   const status = await http(runner, { path: '/api/ai/status', method: 'GET' });
-  assert.deepEqual(JSON.parse(status.body), { configured: true });
+  assert.deepEqual(JSON.parse(status.body), { configured: true, mockAvailable: true });
   assert.equal(status.body.includes('private-value'), false);
   assert.equal(desktop.sender.listenerCount('destroyed'), 0);
 });
@@ -55,6 +55,25 @@ test('rejects cross-origin HTTP and untrusted Electron frames before model execu
   const desktop = ipc(runner);
   const result = await desktop.handlers.get('ai:restyle')({ sender: desktop.sender, senderFrame: {} }, {});
   assert.equal(result.error.code, 'forbidden'); assert.equal(runs, 0);
+});
+
+test('HTTP and Electron route mock requests without credentials and never invoke real AI', async () => {
+  const result = { ...resultFixture(), mode: 'mock' };
+  const runner = createRunner({ getConfig: () => ({}), run: () => assert.fail('Unexpected real model call'),
+    mockRun: async (input, { onProgress, apiKey }) => {
+      assert.equal(input.mode, 'mock'); assert.equal(apiKey, undefined);
+      for (const stage of ['extracting', 'rendering', 'checking']) onProgress(stage);
+      return result;
+    },
+  });
+  const request = { requestId: result.requestId, mode: 'mock' };
+  const response = await http(runner, { body: JSON.stringify(request) });
+  const messages = response.body.trim().split('\n').map(JSON.parse);
+  const desktop = ipc(runner);
+  assert.deepEqual(await desktop.handlers.get('ai:status')(desktop.event), { configured: false, mockAvailable: true });
+  assert.deepEqual((await desktop.handlers.get('ai:restyle')(desktop.event, request)).result, messages.at(-1).result);
+  assert.deepEqual(desktop.progress, ['extracting', 'rendering', 'checking']);
+  assert.equal(messages.at(-1).result.mode, 'mock');
 });
 
 test('runner prevents duplicate execution and IPC cancellation aborts the owned request', async () => {

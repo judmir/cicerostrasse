@@ -26,7 +26,7 @@ app.whenReady().then(async () => {
   const pageErrors = [];
   window.webContents.on('console-message', (_event, level, message) => { if (level >= 3) pageErrors.push(message); });
   await window.loadFile(path.join(__dirname, '../dist/index.html'));
-  assert.deepEqual(await window.webContents.executeJavaScript('window.restyleAI.status()'), { configured: true });
+  assert.deepEqual(await window.webContents.executeJavaScript('window.restyleAI.status()'), { configured: true, mockAvailable: true });
   assert.equal(await window.webContents.executeJavaScript('typeof require'), 'undefined');
   const bytes = (await sharp({ create: { width: 16, height: 9, channels: 3, background: '#a98e72' } }).png().toBuffer()).toString('base64');
   await window.webContents.executeJavaScript(`(async () => {
@@ -41,10 +41,12 @@ app.whenReady().then(async () => {
   const outcome = await window.webContents.executeJavaScript(`(async () => {
     location.hash = '/room/kuche';
     const wait = async (predicate, label) => { for (let i = 0; i < 160; i++) { if (predicate()) return; await new Promise(r => setTimeout(r, 50)); } throw new Error(label + ': ' + document.body.textContent.slice(-2500)); };
-    await wait(() => document.querySelector('[data-image="smoke-source"]'), 'Source gallery');
-    document.querySelector('#start-restyle').click();
-    document.querySelector('[data-design="smoke-source"]').click();
-    document.querySelector('[data-action="next"]').click();
+    await wait(() => document.querySelector('[data-design-link="smoke-source"]'), 'Source gallery');
+    document.querySelector('[data-design-link="smoke-source"]').click();
+    await wait(() => document.querySelector('[data-restyle-source]'), 'Source page');
+    document.querySelector('[data-restyle-source]').click();
+    // Exercise the real transport pipeline with the injected, non-network model client.
+    document.querySelector('[data-action="mode-real"]').click();
     const transfer = new DataTransfer();
     transfer.items.add(new File([Uint8Array.from(atob(${JSON.stringify(bytes)}), c => c.charCodeAt(0))], 'inspiration.png', { type: 'image/png' }));
     const input = document.querySelector('[data-inspiration]'); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -54,11 +56,16 @@ app.whenReady().then(async () => {
     const comparisonImages = document.querySelectorAll('#restyle-dialog .restyle-comparison img').length;
     const success = document.querySelector('#restyle-dialog').textContent.includes('New version saved');
     document.querySelector('[data-action="view"]').click();
+    await wait(() => document.querySelector('.design-version-card'), 'Saved version card');
+    document.querySelector('.design-version-card').click();
+    document.querySelector('#album-compare').click();
+    await wait(() => document.querySelectorAll('#album-versions .restyle-comparison img').length === 2, 'Saved comparison');
+    document.querySelector('[data-close-versions]').click();
     document.querySelector('#album-versions-open').click();
-    await wait(() => document.querySelector('#album-versions .album-version-list'), 'Version history');
-    return { success, comparisonImages, related: document.querySelectorAll('[data-version]').length, geometry: document.querySelector('#album-versions').textContent.includes('No changes detected') };
+    await wait(() => !document.querySelector('#image-dialog').open, 'Back to source page');
+    return { success, comparisonImages, related: document.querySelectorAll('.design-version-card').length + 1, restyleInToolbar: Boolean(document.querySelector('.design-navigation [data-restyle-source]')) };
   })()`);
-  assert.deepEqual(outcome, { success: true, comparisonImages: 2, related: 2, geometry: true });
+  assert.deepEqual(outcome, { success: true, comparisonImages: 2, related: 2, restyleInToolbar: true });
   assert.equal(modelCalls, 3);
   assert.deepEqual(pageErrors, []);
   console.log('Electron smoke passed: sandboxed IPC, full wizard, 3 mocked model calls, saved version, comparison and history.');
