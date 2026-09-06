@@ -1,4 +1,4 @@
-const { app, BrowserWindow, session } = require('electron');
+const { app, BrowserWindow, session, ipcMain } = require('electron');
 const path = require('node:path');
 
 app.setName('Cicerostraße');
@@ -14,6 +14,7 @@ function createWindow() {
     backgroundColor: '#15171b',
     autoHideMenuBar: true,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
@@ -32,7 +33,12 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  const [{ createRunner }, { readAIConfig }, { publicError }] = await Promise.all([
+    import('../server/runner.js'), import('../server/config.js'), import('../server/restyle.js'),
+  ]);
+  const runner = createRunner({ getConfig: () => readAIConfig(path.join(__dirname, '..')) });
+  require('./ai-ipc.cjs').registerAIHandlers({ ipcMain, runner, publicError, allowedSender: (sender) => sender === window?.webContents });
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
   session.defaultSession.setPermissionCheckHandler(() => false);
   createWindow();

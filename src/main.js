@@ -1,13 +1,16 @@
-import { createIcons, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis } from 'lucide';
+import { createIcons, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles } from 'lucide';
 import { rooms, roomById } from './rooms.js';
 import { createFloorplan } from './floorplan.js';
 import { renderRoomPlan } from './room-plan.js';
 import { createPhotoViewer } from './photo-viewer.js';
-import { listImages, addImage, updateImage, deleteImage, validateImageFile } from './storage.js';
+import { listImages, addImage, updateImage, deleteImage, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
+import { createRestyleClient } from './restyle-client.js';
+import { createRestyleWizard } from './restyle-wizard.js';
 import './style.css';
 import './album.css';
+import './restyle.css';
 
-const icons = { ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis };
+const icons = { ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles };
 const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
 const $ = (selector) => document.querySelector(selector);
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -17,6 +20,7 @@ let images = [];
 let plan;
 let galleryURLs = [];
 let photoViewer;
+let restyleWizard;
 let uploadTarget;
 let uploading = false;
 let toastTimer;
@@ -37,7 +41,7 @@ $('#app').innerHTML = `
       <div class="room-navigation"><a href="#/" class="back-link">${icon('arrow-left')} Floor plan</a><button id="show-room-plan" class="text-button" aria-controls="room-plan-sidebar" aria-expanded="false" hidden>${icon('panel-left-open')} Room plan</button></div>
       <div class="room-layout">
         <aside id="room-plan-sidebar" class="room-plan-sidebar" aria-label="Room floor plan and dimensions"><div class="room-plan-heading"><h2>Room plan</h2><button id="hide-room-plan" class="icon-button" aria-label="Collapse room plan" aria-controls="room-plan-sidebar" aria-expanded="true">${icon('panel-left-close')}</button></div><div id="room-plan-content"></div><button id="view-measured-plan" class="text-button">View full plan ${icon('arrow-up-right')}</button></aside>
-        <div class="room-gallery-content"><div class="room-heading"><div><h1 id="room-title"></h1><p id="room-meta"></p></div><button class="button primary add-images">${icon('plus')} Add images</button></div>
+        <div class="room-gallery-content"><div class="room-heading"><div><h1 id="room-title"></h1><p id="room-meta"></p></div><div class="room-heading-actions"><button id="start-restyle" class="button secondary">${icon('sparkles')} Restyle</button><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
             <div id="upload-progress" class="upload-progress" role="status" aria-live="polite" hidden><span id="upload-progress-label"></span><progress id="upload-progress-bar" aria-label="Photo upload progress" value="0" max="1"></progress></div>
           <div id="gallery" aria-label="Room image gallery"></div>
           <p class="gallery-footnote" hidden>Drop more images anywhere on this page.</p>
@@ -48,6 +52,7 @@ $('#app').innerHTML = `
   <footer class="site-footer"><span>Saved on this device</span></footer>
   <input id="image-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple hidden />
   <dialog id="image-dialog" class="album-viewer" aria-labelledby="image-dialog-title"></dialog>
+  <dialog id="restyle-dialog" class="restyle-dialog" aria-labelledby="restyle-title"></dialog>
   <dialog id="measured-plan-dialog" class="measured-plan-dialog" aria-labelledby="measured-plan-title"><div class="dialog-heading"><h2 id="measured-plan-title">Full floor plan</h2><button class="icon-button close-measured-plan" aria-label="Close full floor plan">${icon('x')}</button></div><div class="measured-reference-window"><img src="./measured-floorplan.jpeg" alt="Supplied measured apartment drawing. Küche 2.17 by 4.06 meters, Bad 1.46 by 4.06, middle room 2.93 by 4.06, right room 3.45 by 5.85, left room 4.52 by 4.67, Flur 6.72 by 1.71, and balcony 4.40 by 1.37."/></div><p>Room names in this drawing differ from the first plan. Your galleries keep their original room assignments.</p></dialog>
   <div id="drop-overlay" hidden>${icon('upload')}<span>Drop images to add them to <strong id="drop-room"></strong></span></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
@@ -86,10 +91,11 @@ function renderGallery() {
     $('#gallery').innerHTML = `<div class="gallery-grid">${roomImages.map((item) => {
       const url = URL.createObjectURL(item.thumbnail || item.blob);
       galleryURLs.push(url);
-      return `<button class="image-card" data-image="${item.id}" aria-label="Open ${escape(item.title)}"><div class="image-card-photo"><img src="${url}" alt="${escape(item.title)}" loading="lazy" decoding="async"/></div></button>`;
+      return `<button class="image-card" data-image="${item.id}" aria-label="Open ${escape(item.title)}"><div class="image-card-photo"><img src="${url}" alt="${escape(item.title)}" loading="lazy" decoding="async"/>${item.restyleId ? `<span class="version-badge">${item.geometryStatus === 'no_changes_detected' ? 'Restyled' : 'Review needed'}</span>` : ''}</div></button>`;
     }).join('')}</div>`;
   }
   document.querySelectorAll('.add-images').forEach((button) => { button.disabled = uploading; });
+  $('#start-restyle').disabled = !roomImages.length;
   refreshIcons();
 }
 
@@ -179,15 +185,36 @@ async function uploadFiles(files, roomId) {
   finally { uploading = false; $('#upload-progress').hidden = true; document.querySelectorAll('.add-images').forEach((button) => { button.disabled = false; }); }
 }
 
+function viewVersion(image) {
+  const open = () => photoViewer.open(image.id, images.filter((item) => item.roomId === image.roomId), roomById(image.roomId)?.name || 'Photos');
+  if (image.roomId !== currentRoom) {
+    window.addEventListener('hashchange', open, { once: true });
+    location.hash = `/room/${image.roomId}`;
+  } else open();
+}
+
+restyleWizard = createRestyleWizard($('#restyle-dialog'), {
+  client: createRestyleClient(), escape, readImage, saveVersion: saveRestyleVersion,
+  onSaved: async () => { await refreshData(); toast('Restyled version saved'); },
+  onView: viewVersion, getPhotos: (roomId) => images.filter((item) => item.roomId === roomId),
+});
+
 photoViewer = createPhotoViewer($('#image-dialog'), {
   rooms, icon, escape, refreshIcons, readImage, handleError, notify: toast,
   updatePhoto: async (id, changes) => { await updateImage(id, changes); await refreshData(); },
   removePhoto: async (id) => { await deleteImage(id); await refreshData(); },
+  onRestyle: (photo) => restyleWizard.open(images.filter((item) => item.roomId === photo.roomId), photo.id),
+  onViewVersion: viewVersion,
+  getVersions: async (photo) => ({
+    record: photo.restyleId ? await getRestyleRecord(photo.restyleId) : null,
+    related: images.filter((item) => (item.rootImageId || item.id) === (photo.rootImageId || photo.id)),
+  }),
 });
 
 const lifecycle = new AbortController();
 const events = { signal: lifecycle.signal };
 document.addEventListener('click', (event) => {
+  if (event.target.closest('#start-restyle') && currentRoom) restyleWizard.open(images.filter((item) => item.roomId === currentRoom));
   if (event.target.closest('.add-images') && currentRoom && !uploading) { uploadTarget = currentRoom; $('#image-upload').click(); }
   const imageButton = event.target.closest('[data-image]');
   if (imageButton) photoViewer.open(imageButton.dataset.image, images.filter((item) => item.roomId === currentRoom), roomById(currentRoom)?.name || 'Photos');
@@ -219,7 +246,7 @@ window.addEventListener('drop', (event) => {
   uploadFiles(Array.from(event.dataTransfer.files), currentRoom);
 }, events);
 window.addEventListener('hashchange', navigate, events);
-window.addEventListener('beforeunload', (event) => { if (uploading || photoViewer?.busy) { event.preventDefault(); event.returnValue = ''; } }, events);
+window.addEventListener('beforeunload', (event) => { if (uploading || photoViewer?.busy || restyleWizard?.busy || restyleWizard?.unsaved) { event.preventDefault(); event.returnValue = ''; } }, events);
 
 try {
   plan = createFloorplan($('#floorplan'), (id) => { location.hash = `/room/${id}`; });
@@ -252,5 +279,6 @@ if (import.meta.hot) {
     plan?.dispose();
     clearGalleryURLs();
     photoViewer?.dispose();
+    restyleWizard?.dispose();
   });
 }

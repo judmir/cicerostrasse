@@ -8,3 +8,5 @@ playwright-report/
 coverage/
 *.sqlite*
 .DS_Store
+.env*
+!.env.example

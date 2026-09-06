@@ -6,12 +6,20 @@ let connection;
 export function openDatabase() {
   if (connection) return connection;
   connection = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE, 1);
-    request.onupgradeneeded = () => {
+    const request = indexedDB.open(DATABASE, 2);
+    request.onupgradeneeded = (event) => {
       const db = request.result;
-      const images = db.createObjectStore('images', { keyPath: 'id' });
-      images.createIndex('roomId', 'roomId');
-      db.createObjectStore('notes', { keyPath: 'roomId' });
+      if (event.oldVersion < 1) {
+        const images = db.createObjectStore('images', { keyPath: 'id' });
+        images.createIndex('roomId', 'roomId');
+        db.createObjectStore('notes', { keyPath: 'roomId' });
+      }
+      if (event.oldVersion < 2) {
+        const images = request.transaction.objectStore('images');
+        images.createIndex('rootImageId', 'rootImageId');
+        images.createIndex('parentImageId', 'parentImageId');
+        db.createObjectStore('restyles', { keyPath: 'requestId' });
+      }
     };
     request.onsuccess = () => {
       request.result.onversionchange = () => { request.result.close(); connection = null; };
@@ -68,6 +76,7 @@ export async function updateImage(id, changes) {
     let failure;
     request.onsuccess = () => {
       if (!request.result) { failure = new Error('This image no longer exists.'); tx.abort(); return; }
+      if (request.result.restyleId && 'blob' in patch) { failure = new Error('Restyled versions cannot be replaced. Add a new image or restyle this version.'); tx.abort(); return; }
       result = { ...request.result, ...patch, updatedAt: Date.now() };
       store.put(result);
     };
@@ -76,7 +85,65 @@ export async function updateImage(id, changes) {
   });
 }
 
-export const deleteImage = (id) => transaction('images', 'readwrite', (store) => store.delete(id));
+export async function deleteImage(id) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['images', 'restyles'], 'readwrite');
+    const store = tx.objectStore('images');
+    const request = store.get(id);
+    request.onsuccess = () => {
+      if (request.result?.restyleId) tx.objectStore('restyles').delete(request.result.restyleId);
+      store.delete(id);
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Could not delete the image.'));
+  });
+}
+
+export const getRestyleRecord = (requestId) => transaction('restyles', 'readonly', (store) => store.get(requestId));
+export const getImage = (id) => transaction('images', 'readonly', (store) => store.get(id));
+
+export function sourceSnapshot(image) {
+  const { id, roomId, title, blob, width, height, createdAt, updatedAt } = image;
+  return { id, roomId, title, blob, width, height, createdAt, updatedAt, rootImageId: image.rootImageId || id };
+}
+
+export async function saveRestyleVersion({ source, inspiration, result, rendered }) {
+  if (!roomById(source?.roomId) || !source.id || !(source.blob instanceof Blob)) throw new Error('Choose a valid source design.');
+  validateImageFile(inspiration);
+  validateImageFile(rendered.blob);
+  if (!result?.requestId || !result.spec || !result.geometry) throw new Error('The Restyle result is incomplete.');
+  const now = Date.now();
+  const image = {
+    id: crypto.randomUUID(), roomId: source.roomId, blob: rendered.blob, thumbnail: rendered.thumbnail,
+    width: rendered.width, height: rendered.height, title: `${source.title} · ${result.spec.styleName}`,
+    filename: `restyle-${result.requestId}.png`, caption: '', createdAt: now, updatedAt: now,
+    parentImageId: source.id, rootImageId: source.rootImageId || source.id, restyleId: result.requestId,
+    geometryStatus: result.geometry.status,
+  };
+  const record = {
+    requestId: result.requestId, imageId: image.id, source: sourceSnapshot(source),
+    inspiration: { blob: inspiration, filename: inspiration.name || 'inspiration' },
+    spec: result.spec, geometry: result.geometry, models: result.models, prompt: result.prompt,
+    providerIds: result.providerIds, createdAt: result.createdAt || now,
+  };
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(['images', 'restyles'], 'readwrite');
+    const versions = tx.objectStore('restyles');
+    const images = tx.objectStore('images');
+    let saved = image;
+    const existing = versions.get(result.requestId);
+    existing.onsuccess = () => {
+      if (existing.result) {
+        const request = images.get(existing.result.imageId);
+        request.onsuccess = () => { saved = request.result; };
+      } else { images.add(image); versions.add(record); }
+    };
+    tx.oncomplete = () => resolve(saved);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Could not save this version. Please retry saving.'));
+  });
+}
 export async function getNotes(roomId) {
   return (await transaction('notes', 'readonly', (store) => store.get(roomId)))?.text || '';
 }
