@@ -2,6 +2,8 @@
 
 A minimal JavaScript app: an overhead Three.js floor plan and a separate image gallery for each room. It runs in a browser or Electron.
 
+Public app: [Cicerostraße room journal](https://cicerostrasse.sharp-amber-1311.chatgpt.site). Each visitor has a separate collection stored on their device; photos are not shared between visitors.
+
 ## Run
 
 Requires Node.js 22.12+ and npm.
