@@ -1,5 +1,13 @@
 # Session Workflow
 
+## Default: Delegate to Sub-Agents
+
+- In every session, delegate suitable research, implementation, testing, and review to sub-agents by default.
+- The main agent owns scoping, coordination, user communication, and review of delegated results, and remains accountable for correctness and completion. Step in directly only when delegation is unavailable or unsuitable, or intervention is necessary.
+- Run independent tasks in parallel with clear task and file ownership. Avoid concurrent same-file edits and duplicated work.
+- Do not assume knowledge of agents running in other terminals or promise that delegation frees shared capacity.
+- All sub-agents must follow the existing Git, worktree, safety, verification, and approval safeguards. Delegation does not authorize automatic worktrees, commits, merges, or pushes.
+
 ## Default: Work Directly on Main
 
 - By default, use the primary `Cicerosstrase` checkout on `main` directly. Do not create a worktree, feature branch, or isolated preview unless the user explicitly requests a worktree for the session. Feature size alone does not enable isolation. The user does not need to say `ignore worktree`; that phrase also selects this default mode.
