@@ -56,7 +56,13 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
 
   function generationInputs(source) {
     if (refining()) return `<div class="restyle-generation-inputs restyle-generation-refinement"><span><img src="${imageURL(source.blob)}" alt=""/>Current version</span><b>→</b><span class="restyle-generation-request">${escape(instruction)}</span></div>`;
-    return `<div class="restyle-generation-inputs"><span><img src="${imageURL(source.blob)}" alt=""/>Source</span><b>+</b><span><img src="${imageURL(inspiration)}" alt=""/>Inspiration</span></div>`;
+    const sourceURL = imageURL(source.blob), inspirationURL = imageURL(inspiration);
+    return `<div class="restyle-merge">
+      <div class="restyle-merge-input restyle-merge-source"><img src="${sourceURL}" alt=""/><span>Source</span></div>
+      <span class="restyle-merge-plus">+</span>
+      <div class="restyle-merge-input restyle-merge-inspiration"><img src="${inspirationURL}" alt=""/><span>Inspiration</span></div>
+      <div class="restyle-merge-blend"><img src="${sourceURL}" alt=""/><img class="restyle-merge-overlay" src="${inspirationURL}" alt=""/><span class="restyle-merge-scan"></span></div>
+    </div>`;
   }
 
   function refinementComposer(source) {
