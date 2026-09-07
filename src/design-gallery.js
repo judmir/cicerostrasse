@@ -37,9 +37,9 @@ export async function resolveDesignSource(family, getRecord) {
 export function renderSourceCards(families, { roomId, escape, imageURL, icon }) {
   return `<div class="source-grid">${families.map((family, index) => {
     const preview = family.source || family.versions[0];
-    const description = `Original ${index + 1}: ${family.source?.title || 'Original deleted'}. ${family.versions.length} generated ${family.versions.length === 1 ? 'version' : 'versions'}${family.source ? '' : '. Preview shows a surviving version'}`;
+    const description = `${family.source?.firstDesignId ? `${versionOrigin(family.source)} first design` : 'Original'} ${index + 1}: ${family.source?.title || 'Original deleted'}. ${family.versions.length} generated ${family.versions.length === 1 ? 'version' : 'versions'}${family.source ? '' : '. Preview shows a surviving version'}`;
     return `<article class="source-card"><a class="source-card-link" href="${designPath(roomId, family.rootId)}" data-design-link="${escape(family.rootId)}" aria-label="Open ${escape(description)}" title="${escape(description)}">
-      <div class="source-card-preview"><img src="${imageURL(preview.thumbnail || preview.blob)}" alt="${escape(preview.title)}" loading="lazy" decoding="async"/></div>
+      <div class="source-card-preview"><img src="${imageURL(preview.thumbnail || preview.blob)}" alt="${escape(preview.title)}" loading="lazy" decoding="async"/>${family.source?.firstDesignId ? `<span class="image-provenance" data-origin="${preview.mode === 'mock' ? 'mock' : 'ai'}" title="${versionOrigin(preview)}">${icon(preview.mode === 'mock' ? 'flask-conical' : 'sparkles')}</span>` : ''}</div>
       <div class="source-card-caption" aria-hidden="true"><span class="image-index">${icon(family.source ? 'image' : 'triangle-alert')} ${index + 1}</span><span class="image-index">${icon('layers')} ${family.versions.length}</span></div></a>
       <div class="source-card-actions">${family.source ? `<button class="icon-button" data-delete-source="${escape(family.source.id)}" title="Delete source" aria-label="Delete source: ${escape(family.source.title)}">${icon('trash-2')}</button>` : `<span class="restyle-live">Source deleted · Versions retained</span><button class="icon-button" data-delete-family="${escape(family.rootId)}" title="Delete retained versions" aria-label="Delete ${family.versions.length} retained ${family.versions.length === 1 ? 'version' : 'versions'}">${icon('trash-2')}</button>`}</div></article>`;
   }).join('')}</div>`;
@@ -74,7 +74,7 @@ export function createDesignPage(container, { escape, icon, refreshIcons, getRec
       <section class="design-versions" aria-labelledby="design-versions-title"><h2 id="design-versions-title" class="visually-hidden">Generated versions (${family.versions.length})</h2>
       <div class="design-version-grid">${family.versions.map((version, index) => {
         const parentIndex = family.versions.findIndex((item) => item.id === version.parentImageId);
-        const ancestry = version.parentImageId === family.rootId ? 'From original' : parentIndex >= 0 ? `From version ${parentIndex + 1}` : 'From a removed version';
+        const ancestry = version.parentImageId === family.rootId ? source?.firstDesignId ? 'From first design' : 'From original' : parentIndex >= 0 ? `From version ${parentIndex + 1}` : 'From a removed version';
         const review = version.mode !== 'mock' && version.geometryStatus !== 'no_changes_detected';
         const description = `${versionOrigin(version)} · Version ${index + 1} · ${ancestry}${review ? ' · Review needed' : ''}. ${version.title}${version.restyleInstruction ? `. ${version.restyleInstruction}` : ''}`;
         return `<div class="design-version-node"><button class="design-version-card" data-view-image="${escape(version.id)}" title="${escape(description)}" aria-label="Open version ${index + 1}: ${escape(description)}">
@@ -82,6 +82,22 @@ export function createDesignPage(container, { escape, icon, refreshIcons, getRec
         <div class="design-version-caption" aria-hidden="true"><span>${String(index + 1).padStart(2, '0')}</span>${parentIndex >= 0 ? `<span class="version-parent">${icon('arrow-up-right')}${String(parentIndex + 1).padStart(2, '0')}</span>` : ''}</div></button><div class="design-version-actions">${onRefine ? `<button class="design-refine-button" data-refine-version="${escape(version.id)}" title="Refine version ${index + 1}" aria-label="Refine version ${index + 1}">${icon('pencil')}</button>` : ''}${onDeleteVersion ? `<button class="design-refine-button design-delete-button" data-delete-version="${escape(version.id)}" title="Delete version ${index + 1}" aria-label="Delete version ${index + 1}">${icon('trash-2')}</button>` : ''}</div></div>`;
       }).join('')}
       </div>${family.versions.length ? '' : '<div class="versions-empty"><p>No versions yet.</p></div>'}</section></div>`;
+    if (source?.firstDesignId) {
+      const origin = `${source.mode === 'mock' ? 'Mock' : 'AI-generated'} first design`;
+      container.querySelector('#design-title').textContent = `${origin}: ${source.title}`;
+      container.querySelector('.design-source').setAttribute('aria-label', origin);
+      container.querySelector('.design-source h2').textContent = origin;
+      const preview = container.querySelector('[data-source-preview]');
+      preview.title = origin; preview.setAttribute('aria-label', `Enlarge ${origin}`);
+      const badge = preview.querySelector('.image-provenance');
+      badge.classList.remove('original-provenance'); badge.dataset.origin = source.mode === 'mock' ? 'mock' : 'ai';
+      badge.innerHTML = icon(source.mode === 'mock' ? 'flask-conical' : 'sparkles');
+      container.querySelector('.design-source-actions > span').textContent = origin;
+      const remove = container.querySelector('[data-delete-current-source]');
+      if (remove) { remove.title = 'Delete first design'; remove.setAttribute('aria-label', 'Delete first design'); }
+      const create = container.querySelector('[data-restyle-source]');
+      create.title = 'Create a version from this first design'; create.setAttribute('aria-label', create.title);
+    }
     refreshIcons();
     if (focusHeading) { const heading = container.querySelector('#design-title'); heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
     else if (previousFocus) container.querySelector(`[data-view-image="${previousFocus}"]`)?.focus({ preventScroll: true });

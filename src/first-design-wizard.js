@@ -1,6 +1,6 @@
 import { getAIMode, subscribeAIMode } from './ai-mode.js';
 import { imagePayload, resultFile } from './restyle-client.js';
-import { roomMeasurements } from './room-plan.js';
+import { roomMeasurements, getRoomPlanMetrics } from './room-plan.js';
 import { sourceSnapshot, validateImageFile } from './storage.js';
 import { styleSummary } from './restyle-presenter.js';
 
@@ -27,7 +27,7 @@ export function furnitureCatalog(room) { return furnitureByType[room?.type] || c
 
 function opening(kind, value) {
   if (!value) return null;
-  return { kind, edge: value.edge, start: Math.min(value.start, value.end), end: Math.max(value.start, value.end) };
+  return { kind, edge: value.edge, start: Math.min(value.start, value.end), end: Math.max(value.start, value.end), ...(kind === 'door' || kind === 'balcony_door' ? { hinge: value.reverse ? 'end' : 'start', swing: 'inward' } : {}) };
 }
 
 export function roomPlanConstraint(room) {
@@ -35,8 +35,11 @@ export function roomPlanConstraint(room) {
   if (!measured) return { source: 'relative_only', widthM: null, depthM: null, areaM2: null, openings: [], note: 'No verified room dimensions are stored.' };
   return {
     source: 'measured_plan', widthM: measured.width, depthM: measured.depth, areaM2: measured.area,
-    openings: [opening('door', measured.door), opening('window', measured.window), measured.balconyDoor ? opening('balcony_door', { edge: 'bottom', start: .56, end: .74 }) : null].filter(Boolean),
-    note: measured.note || null,
+    openings: [opening('door', measured.door), opening('window', measured.window), measured.balconyDoor ? opening('balcony_door', { edge: 'bottom', start: .56, end: .74, reverse: true }) : null,
+      ...(measured.hallway ? [[.09, .20], [.42, .51], [.68, .81]].map(([start, end]) => opening('door', { edge: 'bottom', start, end })) : []),
+      ...(measured.hallway ? ['left', 'right'].map(edge => opening('passage', { edge, start: .4, end: 1 - 8 / getRoomPlanMetrics(room.id).drawDepth })) : []),
+    ].filter(Boolean),
+    note: `Dimensions from supplied drawing; openings are schematic. Placement x/y are normalized centers from top-left, x right, y down. Footprints are meters before rotation; front faces top at 0/360 degrees, clockwise as in SVG. Opening start/end run left-to-right on horizontal edges, top-to-bottom on vertical edges. ${measured.note || ''}${measured.balcony ? ' Outdoor balcony with railing along the bottom edge.' : ''}`,
   };
 }
 
@@ -77,12 +80,14 @@ export async function buildFirstDesignRequest({ room, draft, sources, references
   if (error) throw new Error(error);
   const selected = draft.selectedSourceIds.map(id => sources.find(source => source.id === id)).filter(Boolean);
   const selectedReferences = draft.inspirationIds.map(id => references.find(reference => reference.id === id)).filter(Boolean);
+  if (selected.length !== draft.selectedSourceIds.length) throw new Error('A selected room photo is unavailable. Select the room photos again.');
+  if (selected.length > 8) throw new Error('Choose up to 8 room photos.');
   return {
     requestId, mode, operation: 'first_design',
     room: { id: room.id, name: room.name, type: room.type, plan: roomPlanConstraint(room) },
-    roomImages: await Promise.all(selected.map(async source => ({ id: source.id, title: source.title, role: source.id === draft.viewpointSourceId ? 'main_view' : 'context', image: await imagePayload(source.blob) }))),
+    roomImages: await Promise.all(selected.map(async source => ({ id: source.id, title: source.title || source.filename || 'Room photo', role: source.id === draft.viewpointSourceId ? 'main_view' : 'context', image: await imagePayload(source.blob) }))),
     styleReferences: await Promise.all(selectedReferences.map(async reference => ({ id: reference.id, title: reference.title, image: await imagePayload(reference.blob) }))),
-    layout: draft.layout,
+    layout: { ...draft.layout, placements: draft.layout.placements.map(item => ({ ...item, rotationDeg: item.rotationDeg % 360 })) },
     viewpoint: { sourceImageId: draft.viewpointSourceId, label: 'Use this room photo camera and framing for the output.' },
     styleBrief: draft.styleBrief.trim(),
   };

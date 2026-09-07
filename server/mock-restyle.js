@@ -1,6 +1,7 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import sharp from 'sharp';
 import { normalizeImage, RestyleError } from './images.js';
+import { firstDesignInputSchema } from './schema.js';
 
 // Local simulation only. This module has no model client or network calls.
 export async function runMockRestyle(input, { signal, onProgress = () => {}, wait = (ms, options) => delay(ms, undefined, options) } = {}) {
@@ -8,6 +9,9 @@ export async function runMockRestyle(input, { signal, onProgress = () => {}, wai
   const operation = input.operation || 'restyle';
   if (!['restyle', 'refine', 'first_design'].includes(operation)) throw new RestyleError('invalid_request', 'Choose a valid image operation.');
   if (operation === 'first_design') {
+    const parsed = firstDesignInputSchema.safeParse(input);
+    if (!parsed.success) throw new RestyleError('invalid_first_design', 'The first-design request is incomplete or contains invalid room constraints.');
+    input = parsed.data;
     const main = input.roomImages?.find((entry) => entry.role === 'main_view');
     if (!main || input.roomImages.filter((entry) => entry.role === 'main_view').length !== 1 || input.viewpoint?.sourceImageId !== main.id) throw new RestyleError('invalid_first_design', 'Choose exactly one main room viewpoint.');
     if (typeof input.styleBrief !== 'string' || input.styleBrief.trim().length < 3) throw new RestyleError('invalid_first_design', 'Add a style brief before generating.');

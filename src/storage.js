@@ -197,7 +197,8 @@ export async function getImage(id) {
 
 export function sourceSnapshot(image) {
   const { id, roomId, title, blob, width, height, createdAt, updatedAt } = image;
-  return { id, roomId, title, blob, width, height, createdAt, updatedAt, rootImageId: image.rootImageId || id };
+  return { id, roomId, title, blob, width, height, createdAt, updatedAt, rootImageId: image.rootImageId || id,
+    ...(image.firstDesignId ? { firstDesignId: image.firstDesignId, sourceType: 'first_design', mode: image.mode } : {}) };
 }
 
 export async function saveRestyleVersion({ source, inspiration, result, rendered }) {
@@ -316,8 +317,10 @@ export async function saveFirstDesign({ roomId, draft, sources, references = [],
     const existing = await cloudGetRecord('firstDesigns', result.requestId);
     if (existing) return cloudGetRecord('images', existing.imageId);
     await cloudPutRecord('images', image);
-    try { await cloudPutRecord('firstDesigns', record); await cloudDeleteRecord('firstDesignDrafts', roomId); }
+    try { await cloudPutRecord('firstDesigns', record); }
     catch (error) { await cloudDeleteRecord('images', image.id); throw error; }
+    // A failed draft cleanup must not roll back an already persisted design.
+    await cloudDeleteRecord('firstDesignDrafts', roomId).catch(() => {});
     return image;
   }
   const db = await openDatabase();

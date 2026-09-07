@@ -27,14 +27,16 @@ const placementSchema = z.object({
   y: z.number().min(0).max(1),
   widthM: z.number().positive().max(12),
   depthM: z.number().positive().max(12),
-  rotationDeg: z.number().min(0).max(359),
+  rotationDeg: z.number().min(0).max(360),
 }).strict();
 
 const openingSchema = z.object({
-  kind: z.enum(['door', 'window', 'balcony_door']),
+  kind: z.enum(['door', 'window', 'balcony_door', 'passage']),
   edge: z.enum(['top', 'right', 'bottom', 'left']),
   start: z.number().min(0).max(1),
   end: z.number().min(0).max(1),
+  hinge: z.enum(['start', 'end']).optional(),
+  swing: z.literal('inward').optional(),
 }).strict();
 
 export const firstDesignInputSchema = z.object({

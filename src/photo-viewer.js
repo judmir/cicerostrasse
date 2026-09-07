@@ -61,10 +61,10 @@ export function createPhotoViewer(dialog, { rooms, icon, escape, refreshIcons, u
     imageURL = URL.createObjectURL(photo.blob);
     $('#album-photo').src = imageURL;
     $('#album-photo').alt = photo.title || `Photo ${album.index + 1}`;
-    $('[data-action="replace"]').hidden = Boolean(photo.restyleId || photo.archivedSource);
+    $('[data-action="replace"]').hidden = Boolean(photo.restyleId || photo.firstDesignId || photo.archivedSource);
     $('[data-action="edit"]').hidden = Boolean(photo.archivedSource);
     $('[data-action="delete"]').hidden = Boolean(photo.archivedSource);
-    const identity = photo.restyleId ? `Version ${versionNumbers.get(photo.id) || album.index + 1}` : 'Original';
+    const identity = photo.firstDesignId ? 'First design' : photo.restyleId ? `Version ${versionNumbers.get(photo.id) || album.index + 1}` : 'Original';
     $('#image-dialog-title').textContent = `${roomName} · ${identity}${photo.mode === 'mock' ? ' · Mock preview' : ''}`;
     $('#album-restyle span').textContent = photo.restyleId ? 'Refine' : 'Restyle';
     $('#album-compare').hidden = !photo.restyleId || !getVersions;
