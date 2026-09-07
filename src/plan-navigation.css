@@ -19,7 +19,6 @@ main { margin: 0; min-height: 100svh; }
 .plan-room-label.is-selected { color: #e0e5f7; }
 .room-page, .design-page { max-width: 1440px; margin: 0 auto; }
 .room-heading, .design-navigation { border-bottom: 0; padding-top: 20px; padding-bottom: 20px; }
-.room-layout { display: block; }
 .room-collections { border-top: 0; }
 .empty-gallery { height: calc(100svh - 260px); }
 .room-links:not(.fallback-links) { display: none; }

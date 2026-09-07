@@ -1,6 +1,7 @@
 import { createIcons, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image as ImageIcon } from 'lucide';
 import { rooms, roomById, applyRoomNames, setRoomDisplayName } from './rooms.js';
 import { createFloorplan } from './floorplan.js';
+import { renderRoomPlan } from './room-plan.js';
 import { createPhotoViewer } from './photo-viewer.js';
 import { initializeStorage, listRoomNames, saveRoomName, listImages, addImage, updateImage, deleteImage, deleteDesignFamily, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
 import { createRestyleClient } from './restyle-client.js';
@@ -62,6 +63,10 @@ $('#app').innerHTML = `
           <div id="gallery" aria-label="Source designs"></div>
           <section id="inspiration-gallery" class="inspiration-gallery" aria-label="Design inspiration" hidden></section>
         </div>
+        <aside class="room-plan-sidebar" aria-labelledby="room-plan-title">
+          <div class="room-plan-heading"><h2 id="room-plan-title">Room plan</h2></div>
+          <div id="room-plan-content"></div>
+        </aside>
       </div>
     </section>
     <section id="design-page" class="design-page" hidden aria-labelledby="design-title"></section>
@@ -98,6 +103,7 @@ function renderGallery() {
   const families = groupDesigns(images, currentRoom);
   clearGalleryURLs();
   $('#room-title').textContent = room.name;
+  $('#room-plan-content').innerHTML = renderRoomPlan(room);
   $('#room-meta').textContent = `${families.length} ${families.length === 1 ? 'source' : 'sources'}`;
   $('#drop-room').textContent = room.name;
   if (!families.length) {
