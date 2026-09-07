@@ -9,14 +9,14 @@ import { resultFixture } from './restyle-fixtures.js';
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const image = { id: 'source-a', title: 'Kitchen <layout>', blob: new Blob(['source'], { type: 'image/png' }) };
 const escape = (text) => String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
-function setup(removeSource) {
+function setup(removeSource, removeFamily = () => assert.fail('Must not delete a family')) {
   const dom = new JSDOM('<button id="opener">Delete source</button><dialog></dialog>');
   globalThis.document = dom.window.document; globalThis.AbortController = dom.window.AbortController;
   const dialog = document.querySelector('dialog');
   dialog.showModal = () => { dialog.open = true; };
   dialog.close = () => { dialog.open = false; dialog.dispatchEvent(new dom.window.Event('close')); };
   const opener = document.querySelector('#opener'); opener.focus();
-  const controller = createSourceDeleteDialog(dialog, { escape, removeSource });
+  const controller = createSourceDeleteDialog(dialog, { escape, removeSource, removeFamily });
   return { dom, dialog, controller, opener, cleanup() { controller.dispose(); dom.window.close(); } };
 }
 
@@ -34,6 +34,25 @@ test('deletion requires confirmation; Keep source and Escape leave the image alo
     dialog.dispatchEvent(cancel); assert.equal(cancel.defaultPrevented, false);
     dialog.close(); // Native Escape closes the dialog when cancel is not prevented.
     controller.open({ ...image, archivedSource: true }); assert.equal(dialog.open, false);
+  } finally { cleanup(); }
+});
+
+test('retained version families require their own explicit confirmation', async () => {
+  let deleted;
+  const done = new Promise((resolve) => { deleted = resolve; });
+  const family = { rootId: 'deleted-source', versions: [{ ...image, id: 'version-a' }, { ...image, id: 'version-b' }] };
+  const { dialog, controller, cleanup } = setup(() => assert.fail('Must not delete a source'), (rootId) => {
+    assert.equal(rootId, family.rootId); deleted();
+  });
+  try {
+    controller.openFamily(family);
+    assert.match(dialog.textContent, /Delete retained versions/);
+    assert.match(dialog.textContent, /2 saved versions/);
+    assert.equal(dialog.querySelector('[data-keep-source]').textContent, 'Keep versions');
+    assert.equal(dialog.querySelector('[data-confirm-delete]').textContent, 'Delete versions');
+    dialog.querySelector('[data-confirm-delete]').click();
+    await done; await tick();
+    assert.equal(dialog.open, false);
   } finally { cleanup(); }
 });
 

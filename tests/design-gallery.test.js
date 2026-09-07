@@ -34,9 +34,14 @@ test('source cards expose deletion separately from navigation and label deleted 
   }));
   try {
     const buttons = dom.window.document.querySelectorAll('[data-delete-source]');
+    const familyButtons = dom.window.document.querySelectorAll('[data-delete-family]');
     assert.equal(buttons.length, 1);
     assert.equal(buttons[0].dataset.deleteSource, 'a');
     assert.equal(buttons[0].closest('a'), null);
+    assert.equal(familyButtons.length, 1);
+    assert.equal(familyButtons[0].dataset.deleteFamily, 'b');
+    assert.equal(familyButtons[0].getAttribute('aria-label'), 'Delete 1 retained version');
+    assert.equal(familyButtons[0].closest('a'), null);
     assert.match(dom.window.document.body.textContent, /Source deleted · Versions retained/);
   } finally { dom.window.close(); }
 });
@@ -112,16 +117,20 @@ test('source page keeps source before versions, puts Restyle in the toolbar, and
   } finally { page.dispose(); dom.window.close(); }
 });
 
-test('recovered source snapshots have no delete action', async () => {
+test('recovered source snapshots expose deletion for the retained family', async () => {
   const dom = new JSDOM('<section id="page"></section>');
   globalThis.document = dom.window.document; globalThis.AbortController = dom.window.AbortController;
   const container = document.querySelector('#page');
+  let deleted;
   const page = createDesignPage(container, { escape, icon, refreshIcons: () => {}, getRecord: async () => ({ source: source('a') }),
     onView: () => {}, onRestyle: () => {}, onDelete: () => assert.fail('Snapshots cannot be deleted as source records'),
+    onDeleteFamily: (family) => { deleted = family; },
   });
   try {
     await page.render(groupDesigns([version('v1', 'a', 'a')])[0], { room: { id: 'kuche', name: 'Küche' }, number: 1 });
     assert.equal(container.querySelector('[data-delete-current-source]'), null);
+    container.querySelector('[data-delete-current-family]').click();
+    assert.equal(deleted.rootId, 'a');
     assert.match(container.textContent, /Source deleted · Saved snapshot/);
   } finally { page.dispose(); dom.window.close(); }
 });

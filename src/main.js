@@ -3,7 +3,7 @@ import { rooms, roomById, applyRoomNames, setRoomDisplayName } from './rooms.js'
 import { createFloorplan } from './floorplan.js';
 import { renderRoomPlan } from './room-plan.js';
 import { createPhotoViewer } from './photo-viewer.js';
-import { listRoomNames, saveRoomName, listImages, addImage, updateImage, deleteImage, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
+import { initializeStorage, listRoomNames, saveRoomName, listImages, addImage, updateImage, deleteImage, deleteDesignFamily, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
 import { createRestyleClient } from './restyle-client.js';
 import { createRestyleWizard } from './restyle-wizard.js';
 import { createSourceDeleteDialog } from './source-delete-dialog.js';
@@ -18,6 +18,7 @@ import './inspiration.css';
 import './room-name.css';
 import { createRoomNameEditor } from './room-name-editor.js';
 import { createInspirationGallery } from './inspiration-gallery.js';
+import { supabaseConfiguration } from './supabase.js';
 
 const icons = { ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image: ImageIcon };
 const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
@@ -287,6 +288,12 @@ sourceDeleteDialog = createSourceDeleteDialog($('#source-delete-dialog'), {
     if (currentRoot === id && !groupDesigns(images, currentRoom).some((family) => family.rootId === id)) location.hash = `/room/${currentRoom}`;
     toast('Source deleted');
   },
+  removeFamily: async (rootId) => {
+    await deleteDesignFamily(rootId);
+    await refreshData();
+    if (currentRoot === rootId) location.hash = `/room/${currentRoom}`;
+    toast('Saved versions deleted');
+  },
   restoreFocus: () => {
     const target = currentRoot ? $('#design-title') : $('.room-heading .add-images');
     if (target) { if (currentRoot) target.tabIndex = -1; target.focus({ preventScroll: true }); }
@@ -299,6 +306,7 @@ designPage = createDesignPage($('#design-page'), {
   onRestyle: (source) => restyleWizard.open([source], source.id, { lockSource: true }),
   onRefine: (version) => restyleWizard.open([version], version.id, { lockSource: true, flow: 'refine' }),
   onDelete: (source, versionCount) => sourceDeleteDialog.open(source, versionCount),
+  onDeleteFamily: (family) => sourceDeleteDialog.openFamily(family),
 });
 
 restyleWizard = createRestyleWizard($('#restyle-dialog'), {
@@ -334,6 +342,11 @@ document.addEventListener('click', (event) => {
   if (deleteId && currentRoom) {
     const family = groupDesigns(images, currentRoom).find((item) => item.source?.id === deleteId);
     if (family) sourceDeleteDialog.open(family.source, family.versions.length);
+  }
+  const familyId = event.target.closest('[data-delete-family]')?.dataset.deleteFamily;
+  if (familyId && currentRoom) {
+    const family = groupDesigns(images, currentRoom).find((item) => item.rootId === familyId && !item.source);
+    if (family) sourceDeleteDialog.openFamily(family);
   }
   if (event.target.closest('.add-images') && currentRoom && !uploading) { uploadTarget = currentRoom; $('#image-upload').click(); }
   if (event.target.closest('#rename-room')) roomNameEditor.open();
@@ -375,10 +388,29 @@ try {
   $('#floorplan').innerHTML = '<div class="plan-fallback"><img src="./original-floorplan.jpeg" alt="Original apartment floor plan"/><p>Select a room below to open its gallery.</p></div>';
   $('.room-links').classList.add('fallback-links');
 }
+const deviceStatus = $('.device-status');
+const storageStartup = initializeStorage({
+  onProgress: (message) => { if (!disposed) deviceStatus.textContent = message; },
+});
 refreshIcons();
 navigate();
-refreshData().catch(handleError);
-listRoomNames().then(records => { if (!disposed) { applyRoomNames(records); refreshRoomNames(); } }).catch(handleError).finally(() => { if (!disposed) $('#rename-room').disabled = false; });
+
+async function bootstrapStorage() {
+  const result = await storageStartup;
+  if (disposed) return;
+  if (result.connected) {
+    deviceStatus.textContent = 'Synced privately with Supabase';
+    deviceStatus.title = 'Room data and image files are stored in your private Supabase account.';
+  } else if (supabaseConfiguration().configured) {
+    deviceStatus.textContent = 'On-device storage · Supabase unavailable';
+    deviceStatus.title = 'Your data remains available on this device. Reload to retry Supabase.';
+    if (result.error) console.error(result.error);
+  }
+  await refreshData();
+  const records = await listRoomNames();
+  if (!disposed) { applyRoomNames(records); refreshRoomNames(); $('#rename-room').disabled = false; }
+}
+bootstrapStorage().catch((error) => { handleError(error); if (!disposed) $('#rename-room').disabled = false; });
 
 const modelContext = document.modelContext || navigator.modelContext;
 if (modelContext?.registerTool) {

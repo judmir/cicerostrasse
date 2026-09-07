@@ -1,0 +1,39 @@
+# Local Supabase CLI configuration. The linked hosted project is Cicerostrasse
+# (project ref: jwbwnbbaetgwmhiouzcu).
+project_id = "cicerostrasse"
+
+[api]
+enabled = true
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = []
+enable_signup = true
+enable_anonymous_sign_ins = true
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = false
+max_frequency = "1m"
+otp_length = 8
+otp_expiry = 3600

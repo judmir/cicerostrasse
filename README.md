@@ -15,6 +15,14 @@ npm run dev
 
 Open http://127.0.0.1:5173. Choose a room from the sidebar or floor plan, then select or drop source images to upload them together. The flat image gallery uses an image icon and number for each original, and a stack icon for its generated-version count. Open an original to see it anchored beside a smaller result grid, connected by an arrow. The toolbar's **plus / sparkle** button creates a version. On narrow windows the arrow runs downward from the original to the results, and a room selector replaces the sidebar. The progress bar tracks large upload batches.
 
+### Supabase
+
+The repository is linked to the `Cicerostrasse` Supabase project. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_PUBLISHABLE_KEY` to enable the runtime connection check. Apply database changes with `supabase db push`; migrations live in `supabase/migrations/`.
+
+When Supabase is configured, the app signs in anonymously, uploads existing IndexedDB content once, and then stores room names, notes, source photos, inspiration, generated versions, and provenance in Supabase. Metadata is stored in `journal_records`; image bytes and thumbnails use the private `journal-media` bucket. Row Level Security limits both to the current Supabase user.
+
+IndexedDB is retained as a migration backup and as the fallback when Supabase is unavailable. An anonymous session belongs to its browser or Electron installation; link it to a permanent login before clearing application data if cross-device recovery is required. The browser uses only a publishable key. Never add a secret or service-role key to a `VITE_` variable.
+
 The image icon identifies an uploaded original, sparkles identify AI-generated results, and a flask identifies mock previews. A warning triangle means the result needs review. Hover an image for its full name and provenance; these details are also available to screen readers. Numbered versions retain their order, and a small arrow plus a number identifies a parent version. Pencil icons refine a version. Opening an image keeps the full viewer, editing, comparison, and download tools available.
 
 Click the source image or a version to enlarge it. Use arrow buttons, left/right keyboard arrows, horizontal swipes, or thumbnails to browse that source’s family. Home/End jump to the first/last image; Escape closes the viewer. **Versions** returns to the source page. **Compare** opens a generated version beside its saved input snapshot, with geometry findings and the style summary or refinement instruction. **Restyle** uses an original as the base; **Refine** works from a generated version. The **…** menu holds editing, replacement, download, and deletion. **Room info** opens the measured room plan with its dimensions and area.
@@ -66,9 +74,9 @@ The geometry check reports **No changes detected**, **Changes detected**, **Unce
 
 Cancellation stops the active local request. Provider usage may already have been incurred. Active requests do not resume after closing the backend. If saving fails, keep the app open and use **Retry save** or **Download**; neither generates another image. A failed-save result remains available when you reopen the wizard in the same session. Generated image bytes cannot be replaced in place; you can rename, delete, or restyle that version.
 
-### Local storage
+### Storage
 
-Original image files and their metadata are saved in IndexedDB on this device. New uploads also save a small thumbnail for faster grids; originals remain unchanged. Existing photos are preserved during automatic database upgrades. Each browser profile and the Electron app have separate collections; there is no server or account synchronization. Clearing browser/site/app data deletes that collection. Use **Download photo** in the viewer’s **…** menu to keep original copies. Notes saved by the earlier interface remain in the database.
+With Supabase configured, original image files, thumbnails, metadata, notes, inspiration, room names, and restyle provenance are stored privately in Supabase. On the first connected launch, existing IndexedDB records are migrated without deleting the local copy. If the cloud connection cannot be established, the app continues with its existing on-device data and reports the fallback in the sidebar. Use **Download photo** in the viewer’s **…** menu to keep independent copies.
 
 Restyled versions also retain their inspiration image, an immutable source snapshot, parent/root links, style spec, model names, render prompt, and geometry findings. Source snapshots remain with descendants after the source is edited or deleted, so comparisons stay accurate. Deleting a restyled image also deletes its own provenance; other versions keep their own snapshots. Database upgrades preserve existing images and notes.
 

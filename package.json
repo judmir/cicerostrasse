@@ -17,6 +17,7 @@
     "test:desktop": "npm run build && electron scripts/smoke-electron.cjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
     "dotenv": "^17.4.2",
     "lucide": "^0.468.0",
     "openai": "^7.10.0",

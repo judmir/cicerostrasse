@@ -42,3 +42,12 @@ Built composition: the border-separated form is capped at 680px with a flexible 
 Names persist locally in the separate `roomNames` store and update sidebar navigation, the mobile selector, headings and document title, apartment floor-plan labels, room diagrams, inspiration context and photo-viewer room options. Stable IDs, routes, measurements and existing collections keep their assignments.
 
 Closure: the fresh finish review returned disposition ship with no material fixes. Four valid captures cover ordinary and long names on desktop and mobile: `.impeccable/review/room-name-desktop.png`, `room-name-mobile.png`, `room-name-long-desktop.png` and `room-name-long-mobile.png`. Main-task verification reports 82 passing tests, a passing build, and room-name, inspiration and existing generation smoke checks. A single detector pass identified the intentional mobile 16px input; its dynamic viewer-image and floor-plan-color findings predate this extension. No new shipping raster or global token was introduced.
+
+
+## Supabase persistence extension
+
+Scope: `src/cloud-storage.js`, the storage adapter in `src/storage.js`, startup status in `src/main.js`, and Supabase migrations. The existing Operate direction remains authoritative.
+
+Configured installations authenticate anonymously, migrate their existing IndexedDB records once, and then persist metadata to a private Postgres table and image bytes to a private Storage bucket. The sidebar footer communicates connecting, migration progress, synchronized, and local-fallback states without adding a new panel or interrupting the workspace. Existing local records remain a recovery source; failures preserve the usable on-device path.
+
+Row Level Security isolates every metadata row and Storage object by authenticated user ID. No secret key enters the renderer. Anonymous identity remains installation-bound until a permanent login is added.
