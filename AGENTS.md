@@ -32,3 +32,9 @@
 - Never stash, discard, overwrite, or commit another session's changes. Never force-push, reset branches, or bypass Git hooks. If conflicts involve unfamiliar concurrent work, ask the user rather than guessing.
 - Verify the merged result with relevant checks. Report the merge outcome and any remaining issues. Do not push unless explicitly requested.
 - After a successful merge and verification, stop only this session's preview process. Remove its worktree and branch only after confirming the branch is merged and the worktree contains no uncommitted changes or untracked files that need preserving; never force cleanup. Leave all other sessions and servers alone.
+
+## Discard on Request
+
+- When the user says "remove" or "delete" to reject the current session's feature, stop its preview server, remove its dedicated worktree, and delete its branch. Do not revert or delete application files individually, commit the rejected work, or merge it.
+- Verify the session's process, worktree, and branch before removal. This request authorizes discarding the rejected session's uncommitted changes and unmerged commits, including forced worktree removal or branch deletion when needed. If unfamiliar changes are present, ask before discarding them. Leave the shared checkout, other sessions, and other servers untouched.
+- If the feature was already merged, deleting its branch and worktree will not remove it from main; explain this and ask before reverting integrated changes.
