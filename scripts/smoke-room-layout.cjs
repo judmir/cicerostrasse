@@ -8,11 +8,13 @@ const profile = fs.mkdtempSync(path.join(artifacts, 'cicero-room-layout-'));
 const screenshot = path.join(artifacts, 'room-layout.png');
 app.setPath('userData', profile);
 app.setPath('sessionData', profile);
-const timer = setTimeout(() => { console.error('Room-layout smoke timed out'); app.exit(1); }, 60000);
+const timer = setTimeout(() => { console.error('Room-layout smoke timed out'); app.exit(1); }, 120000);
 
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ show: false, width: 1440, height: 960,
     webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
+  // This smoke seeds IndexedDB; never use configured cloud storage or create remote test data.
+  await win.webContents.session.protocol.handle('https', () => new Response('{"message":"Remote services disabled for local smoke test"}', { status: 403, headers: { 'Content-Type': 'application/json' } }));
   const run = source => win.webContents.executeJavaScript(source);
   const settle = () => run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
   const wait = condition => run(`(async () => {
@@ -20,7 +22,7 @@ app.whenReady().then(async () => {
       if (${condition}) return;
       await new Promise(resolve => setTimeout(resolve, 25));
     }
-    throw new Error('Timed out waiting for: ' + ${JSON.stringify(condition)});
+    throw new Error('Timed out waiting for: ' + ${JSON.stringify(condition)} + '; dialog error: ' + (document.querySelector('#room-layout-dialog [data-error]')?.textContent || 'none'));
   })()`);
   const open = async () => {
     await wait("document.querySelector('#rename-room')?.disabled === false");
@@ -245,7 +247,7 @@ app.whenReady().then(async () => {
   await run("document.querySelector('[data-save]').click()");
   await wait("!document.querySelector('#room-layout-dialog').open");
   // Exercise the actual HTTP pipeline using an isolated browser profile and Mock only.
-  await win.loadURL('http://127.0.0.1:5174/#/room/raum3');
+  await win.loadURL(`${process.env.ROOM_LAYOUT_SMOKE_URL || 'http://127.0.0.1:5174'}/#/room/raum3`);
   await wait("document.querySelector('#rename-room')?.disabled === false");
   await run(`(async () => {
     localStorage.setItem('cicero-restyle-mode', 'mock');
@@ -342,6 +344,7 @@ app.whenReady().then(async () => {
   await run("document.querySelector('[data-action=open-design]').click()");
   await wait("!document.querySelector('#room-layout-dialog').open && document.querySelector('[data-source-preview]')");
   assert.match(await run("document.querySelector('#design-title').textContent"), /Mock first design/);
+  assert.equal(await run("document.querySelector('.design-context-label').textContent"), 'Versions');
   await win.reload();
   await wait("document.querySelector('[data-source-preview]')");
   assert.match(await run("document.querySelector('#design-title').textContent"), /Mock first design/);

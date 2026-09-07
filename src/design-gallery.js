@@ -90,7 +90,7 @@ export function createDesignPage(container, { escape, icon, refreshIcons, getRec
       </div>${family.versions.length ? '' : '<div class="versions-empty"><p>No versions yet.</p></div>'}</section></div>`;
     if (source?.firstDesignId) {
       const origin = `${source.mode === 'mock' ? 'Mock' : 'AI-generated'} first design`;
-      container.querySelector('#design-title').textContent = `${origin}: ${source.title}`;
+      container.querySelector('.design-context-source').textContent = `${origin}: ${source.title}${source.archivedSource ? ' · Deleted source, saved snapshot' : ''}`;
       container.querySelector('.design-source').setAttribute('aria-label', origin);
       container.querySelector('.design-source h2').textContent = origin;
       const preview = container.querySelector('[data-source-preview]');
