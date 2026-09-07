@@ -39,7 +39,7 @@ app.whenReady().then(async () => {
   // Force an actual reload so the app reads the seeded record from IndexedDB.
   await new Promise((resolve) => { window.webContents.once('did-finish-load', resolve); window.webContents.reload(); });
   const outcome = await window.webContents.executeJavaScript(`(async () => {
-    location.hash = '/room/kuche';
+    (document.querySelector('.plan-room-label[data-room="kuche"]') || document.querySelector('[data-plan-room="kuche"]')).click();
     const wait = async (predicate, label) => { for (let i = 0; i < 160; i++) { if (predicate()) return; await new Promise(r => setTimeout(r, 50)); } throw new Error(label + ': ' + document.body.textContent.slice(-2500)); };
     await wait(() => document.querySelector('[data-design-link="smoke-source"]'), 'Source gallery');
     await wait(() => !document.querySelector('#rename-room').disabled, 'Room names loaded');
@@ -70,7 +70,13 @@ app.whenReady().then(async () => {
     document.querySelector('[data-close-versions]').click();
     document.querySelector('#album-versions-open').click();
     await wait(() => !document.querySelector('#image-dialog').open, 'Back to source page');
-    return { success, comparisonImages, related: document.querySelectorAll('.design-version-card').length + 1, restyleInToolbar: Boolean(document.querySelector('.design-navigation [data-restyle-source]')) };
+    const result = { success, comparisonImages, related: document.querySelectorAll('.design-version-card').length + 1, restyleInToolbar: Boolean(document.querySelector('.design-navigation [data-restyle-source]')) };
+    document.querySelector('#plan-toggle').click();
+    if (document.querySelector('#plan-navigation').hidden || document.querySelector('#plan-home').hidden) throw new Error('Design page plan expansion');
+    document.querySelector('#plan-home').click();
+    await wait(() => location.hash === '#/' && document.querySelector('#design-page').hidden, 'Return to floor plan');
+    if (document.querySelector('#plan-navigation').hidden || !document.querySelector('#plan-toggle').hidden || !document.querySelector('#room-page').hidden) throw new Error('Floor-plan-only home');
+    return result;
   })()`);
   assert.deepEqual(outcome, { success: true, comparisonImages: 2, related: 2, restyleInToolbar: true });
   assert.equal(modelCalls, 3);

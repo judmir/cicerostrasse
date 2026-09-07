@@ -1,13 +1,11 @@
-import { createIcons, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image as ImageIcon } from 'lucide';
+import { createIcons, ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image as ImageIcon } from 'lucide';
 import { rooms, roomById, applyRoomNames, setRoomDisplayName } from './rooms.js';
 import { createFloorplan } from './floorplan.js';
-import { renderRoomPlan } from './room-plan.js';
 import { createPhotoViewer } from './photo-viewer.js';
 import { initializeStorage, listRoomNames, saveRoomName, listImages, addImage, updateImage, deleteImage, deleteDesignFamily, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
 import { createRestyleClient } from './restyle-client.js';
 import { createRestyleWizard } from './restyle-wizard.js';
 import { createSourceDeleteDialog } from './source-delete-dialog.js';
-import { createAIModeToggle } from './ai-mode.js';
 import { createDesignPage, groupDesigns, renderSourceCards, parseGalleryRoute, designPath, designRoot } from './design-gallery.js';
 import './style.css';
 import './album.css';
@@ -16,11 +14,11 @@ import './design-gallery.css';
 import './desktop.css';
 import './inspiration.css';
 import './room-name.css';
+import './plan-navigation.css';
 import { createRoomNameEditor } from './room-name-editor.js';
 import { createInspirationGallery } from './inspiration-gallery.js';
-import { supabaseConfiguration } from './supabase.js';
 
-const icons = { ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, LayoutDashboard, PanelLeftClose, PanelLeftOpen, ArrowUpRight, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image: ImageIcon };
+const icons = { ArrowLeft, Plus, X, Upload, ImagePlus, Trash2, Download, RefreshCw, Check, Pencil, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Ellipsis, Sparkles, History, FlaskConical, TriangleAlert, Layers, Image: ImageIcon };
 const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
 const $ = (selector) => document.querySelector(selector);
 const escape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
@@ -38,34 +36,27 @@ let photoViewer;
 let restyleWizard;
 let designPage;
 let sourceDeleteDialog;
-let aiModeToggle;
 let uploadTarget;
 let uploading = false;
 let toastTimer;
 let disposed = false;
-let planCollapsed = true;
-try { planCollapsed = localStorage.getItem('cicero-room-plan-collapsed') !== 'false'; } catch { /* Keep measurements on demand when preferences are unavailable. */ }
+let planExpanded = false;
 
 $('#app').innerHTML = `
-  <aside class="app-sidebar" aria-label="Apartment navigation">
-    <a class="wordmark" href="#/">${icon('layout-dashboard')} Cicerostraße</a>
-    <nav class="app-navigation" aria-label="Rooms"><a class="sidebar-link" href="#/" data-nav-overview>${icon('layout-dashboard')}<span>Floor plan</span></a><p class="sidebar-section-label">Rooms</p>${rooms.map((room) => `<a class="sidebar-link" href="#/room/${room.id}" data-nav-room="${room.id}">${icon('image')}<span>${room.name}</span><span class="sidebar-count" data-room-count="${room.id}"></span></a>`).join('')}</nav>
-    <div class="sidebar-footer"><div id="global-ai-mode" class="global-ai-mode"><span class="global-ai-label">Generation</span><div class="global-ai-toggle" role="group" aria-label="AI connection"><button data-ai-mode="mock" aria-pressed="true">Mock</button><button data-ai-mode="real" aria-pressed="false">Real AI</button></div><span class="global-ai-description" data-ai-mode-description>No API charges</span></div><p class="device-status">Saved on this device</p></div>
-  </aside>
-  <header class="mobile-header"><a class="wordmark" href="#/">Cicerostraße</a><label class="room-switcher"><span class="restyle-live">Navigate to a room</span><select id="mobile-room-select"><option value="">Floor plan</option>${rooms.map((room) => `<option value="${room.id}">${room.name}</option>`).join('')}</select></label></header>
   <main>
     <section id="plan-page" class="plan-page" aria-label="Apartment floor plan">
-      <div class="plan-intro"><h1>Floor plan</h1><span>Select a room to view its images</span></div>
-      <div class="apartment-plan-viewport"><div id="floorplan"></div></div>
-      <nav class="room-links" aria-label="Open a room gallery">${rooms.map((room) => `<a href="#/room/${room.id}">${room.name}</a>`).join('')}</nav>
-      <p class="plan-footnote">Dimensions from your measured plan · Layout schematic</p>
+      <button id="plan-toggle" class="plan-toggle" type="button" hidden aria-expanded="false" aria-controls="plan-navigation"><svg class="plan-miniature" viewBox="-90 -110 1460 770" aria-hidden="true" focusable="false">${rooms.map((room) => `<polygon data-mini-room="${room.id}" points="${room.polygon.map((point) => point.join(',')).join(' ')}"/>`).join('')}</svg><span class="visually-hidden">Expand floor plan</span>${icon('chevron-down')}</button>
+      <div id="plan-navigation">
+        <a id="plan-home" href="#/" hidden>Full floor plan</a>
+        <div class="apartment-plan-viewport"><div id="floorplan" tabindex="-1" aria-label="Apartment floor plan"></div></div>
+        <nav class="room-links" aria-label="Open a room gallery">${rooms.map((room) => `<a href="#/room/${room.id}" data-plan-room="${room.id}">${room.name}</a>`).join('')}</nav>
+      </div>
     </section>
     <section id="room-page" class="room-page" hidden aria-labelledby="room-title">
-      <div class="room-heading"><div class="room-heading-title"><h1 id="room-title"></h1><button id="rename-room" class="icon-button" disabled aria-label="Rename room" title="Rename room">${icon('pencil')}</button><span id="room-meta"></span></div><div class="room-heading-actions"><button id="show-room-plan" class="button secondary" aria-controls="room-plan-sidebar" aria-expanded="false" hidden>${icon('panel-left-open')} Room info</button><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
+      <div class="room-heading"><div class="room-heading-title"><h1 id="room-title"></h1><button id="rename-room" class="icon-button" disabled aria-label="Rename room" title="Rename room">${icon('pencil')}</button><span id="room-meta"></span></div><div class="room-heading-actions"><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
       <div id="room-name-editor" class="room-name-editor" hidden></div>
       <nav class="room-collections" aria-label="Room collections"><a id="sources-link">Sources</a><a id="inspiration-link">Design inspiration</a></nav>
       <div class="room-layout">
-        <aside id="room-plan-sidebar" class="room-plan-sidebar" aria-label="Room floor plan and dimensions"><div class="room-plan-heading"><h2>Room plan</h2><button id="hide-room-plan" class="icon-button" aria-label="Collapse room plan" aria-controls="room-plan-sidebar" aria-expanded="true">${icon('panel-left-close')}</button></div><div id="room-plan-content"></div><button id="view-measured-plan" class="text-button">View full plan ${icon('arrow-up-right')}</button></aside>
         <div class="room-gallery-content">
             <div id="upload-progress" class="upload-progress" role="status" aria-live="polite" hidden><span id="upload-progress-label"></span><progress id="upload-progress-bar" aria-label="Photo upload progress" value="0" max="1"></progress></div>
           <div id="gallery" aria-label="Source designs"></div>
@@ -79,7 +70,6 @@ $('#app').innerHTML = `
   <dialog id="image-dialog" class="album-viewer" aria-labelledby="image-dialog-title"></dialog>
   <dialog id="restyle-dialog" class="restyle-dialog" aria-labelledby="restyle-title"></dialog>
   <dialog id="source-delete-dialog" class="source-delete-dialog" aria-labelledby="source-delete-title" aria-describedby="source-delete-description"></dialog>
-  <dialog id="measured-plan-dialog" class="measured-plan-dialog" aria-labelledby="measured-plan-title"><div class="dialog-heading"><h2 id="measured-plan-title">Full floor plan</h2><button class="icon-button close-measured-plan" aria-label="Close full floor plan">${icon('x')}</button></div><div class="measured-reference-window"><img src="./measured-floorplan.jpeg" alt="Supplied measured apartment drawing. Küche 2.17 by 4.06 meters, Bad 1.46 by 4.06, middle room 2.93 by 4.06, right room 3.45 by 5.85, left room 4.52 by 4.67, Flur 6.72 by 1.71, and balcony 4.40 by 1.37."/></div><p>Room names in this drawing differ from the first plan. Your galleries keep their original room assignments.</p></dialog>
   <div id="drop-overlay" hidden>${icon('upload')}<span>Drop images to add them to <strong id="drop-room"></strong></span></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 `;
@@ -133,13 +123,6 @@ async function refreshData() {
   if (disposed) return;
   images = savedImages;
   dataLoaded = true;
-  for (const room of rooms) {
-    const count = groupDesigns(images, room.id).length;
-    $(`[data-room-count="${room.id}"]`).textContent = count || '';
-    const label = `${room.name} · ${count} ${count === 1 ? 'source' : 'sources'}`;
-    $(`[data-nav-room="${room.id}"]`).setAttribute('aria-label', label);
-    $(`[data-nav-room="${room.id}"]`).title = label;
-  }
   plan?.setCounts(Object.fromEntries(rooms.map((room) => [room.id, images.filter((item) => item.roomId === room.id).length])));
   renderGallery();
   await renderCurrentDesign();
@@ -153,13 +136,15 @@ function navigate() {
   const room = route && roomById(route.roomId);
   currentRoom = room?.id || null;
   currentRoot = room ? route.rootId : null;
-  document.querySelectorAll('[data-nav-room]').forEach((link) => { if (link.dataset.navRoom === currentRoom) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current'); });
-  if (!currentRoom) $('[data-nav-overview]').setAttribute('aria-current', 'page'); else $('[data-nav-overview]').removeAttribute('aria-current');
-  $('#mobile-room-select').value = currentRoom || '';
   $('#image-dialog').close();
-  $('#measured-plan-dialog').close();
   $('#drop-overlay').hidden = true;
-  $('#plan-page').hidden = !!currentRoom;
+  plan?.setSelectedRoom(currentRoom);
+  setPlanExpanded(false);
+  document.querySelectorAll('[data-mini-room], [data-plan-room]').forEach((element) => {
+    const selected = (element.dataset.miniRoom || element.dataset.planRoom) === currentRoom;
+    element.classList.toggle('is-selected', selected);
+    if (selected) element.setAttribute('aria-current', 'page'); else element.removeAttribute('aria-current');
+  });
   $('#room-page').hidden = !currentRoom || !!currentRoot;
   $('#design-page').hidden = !currentRoot;
   $('#gallery').hidden = inspirationActive;
@@ -173,29 +158,31 @@ function navigate() {
   $('.room-heading .add-images').hidden = inspirationActive;
   inspirationGallery?.setRoom(room || null, Boolean(room && inspirationActive));
   document.title = currentRoot ? `Design versions — ${room.name}` : currentRoom ? `${room.name} — Cicerostraße` : 'Floor plan — Cicerostraße';
-  plan?.setVisible(!currentRoom);
-  if (currentRoom) { renderGallery(); $('#room-plan-content').innerHTML = renderRoomPlan(room); applySidebarState(); }
-  else { clearGalleryURLs(); plan?.resize(); }
+  if (currentRoom) renderGallery();
+  else clearGalleryURLs();
   if (currentRoot) renderCurrentDesign(true).catch(handleError);
   else designPage?.hide();
   window.scrollTo(0, 0);
-  const heading = currentRoot ? $('#design-title') : currentRoom ? $('#room-title') : $('.plan-intro h1');
+  const heading = currentRoot ? $('#design-title') : currentRoom ? $('#room-title') : $('#floorplan .plan-room-label.hovered') || $('#floorplan');
   if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
 }
 
-function applySidebarState() {
-  $('.room-layout').classList.toggle('plan-collapsed', planCollapsed);
-  $('#room-plan-sidebar').hidden = planCollapsed;
-  $('#show-room-plan').hidden = !planCollapsed;
-  $('#show-room-plan').setAttribute('aria-expanded', String(!planCollapsed));
-  $('#hide-room-plan').setAttribute('aria-expanded', String(!planCollapsed));
+function setPlanExpanded(expanded, restoreFocus = false) {
+  planExpanded = Boolean(currentRoom && expanded);
+  $('#plan-page').classList.toggle('is-room', Boolean(currentRoom));
+  $('#plan-page').classList.toggle('is-expanded', planExpanded);
+  $('#plan-toggle').hidden = !currentRoom;
+  $('#plan-toggle').setAttribute('aria-expanded', String(planExpanded));
+  $('#plan-toggle .visually-hidden').textContent = planExpanded ? 'Collapse floor plan' : 'Expand floor plan';
+  $('#plan-navigation').hidden = Boolean(currentRoom && !planExpanded);
+  $('#plan-home').hidden = !planExpanded;
+  plan?.setVisible(!currentRoom || planExpanded);
+  if (restoreFocus && currentRoom) $('#plan-toggle').focus({ preventScroll: true });
 }
 
-function toggleRoomPlan(collapsed) {
-  planCollapsed = collapsed;
-  applySidebarState();
-  try { localStorage.setItem('cicero-room-plan-collapsed', String(collapsed)); } catch { /* Layout still works without preference storage. */ }
-  $(collapsed ? '#show-room-plan' : '#hide-room-plan').focus();
+function selectPlanRoom(id) {
+  if (id === currentRoom) setPlanExpanded(false, true);
+  else location.hash = `/room/${id}`;
 }
 
 async function readImage(file) {
@@ -255,18 +242,11 @@ function showDesign(image) {
 
 function refreshRoomNames() {
   for (const room of rooms) {
-    const link = $(`[data-nav-room="${room.id}"]`);
-    link.querySelector('span').textContent = room.name;
-    const count = groupDesigns(images, room.id).length;
-    const label = `${room.name} · ${count} ${count === 1 ? 'source' : 'sources'}`;
-    link.setAttribute('aria-label', label); link.title = label;
-    $(`#mobile-room-select option[value="${room.id}"]`).textContent = room.name;
     $(`.room-links a[href="#/room/${room.id}"]`).textContent = room.name;
   }
   plan?.refreshNames();
   if (currentRoom) {
     renderGallery();
-    $('#room-plan-content').innerHTML = renderRoomPlan(roomById(currentRoom));
     document.title = currentRoot ? `Design versions — ${roomById(currentRoom).name}` : `${roomById(currentRoom).name} — Cicerostraße`;
     if (currentRoot) renderCurrentDesign().catch(handleError);
   }
@@ -313,12 +293,6 @@ restyleWizard = createRestyleWizard($('#restyle-dialog'), {
   client: createRestyleClient(), escape, readImage, saveVersion: saveRestyleVersion,
   onSaved: async () => { await refreshData(); toast('New version saved'); },
   onView: showDesign, getPhotos: (roomId) => images.filter((item) => item.roomId === roomId),
-  onStateChange: () => aiModeToggle?.refresh(),
-});
-
-aiModeToggle = createAIModeToggle($('#global-ai-mode'), {
-  isLocked: () => Boolean(restyleWizard?.busy),
-  onLocked: () => toast('Wait for the current Restyle to finish or cancel it before switching AI mode.'),
 });
 
 photoViewer = createPhotoViewer($('#image-dialog'), {
@@ -336,7 +310,18 @@ photoViewer = createPhotoViewer($('#image-dialog'), {
 
 const lifecycle = new AbortController();
 const events = { signal: lifecycle.signal };
-$('#mobile-room-select').addEventListener('change', (event) => { location.hash = event.target.value ? `/room/${event.target.value}` : '/'; }, events);
+$('#plan-toggle').addEventListener('click', () => setPlanExpanded(!planExpanded), events);
+$('#plan-navigation').addEventListener('click', (event) => {
+  const link = event.target.closest('[data-plan-room]');
+  if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  event.preventDefault();
+  selectPlanRoom(link.dataset.planRoom);
+}, events);
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !planExpanded || event.defaultPrevented || document.querySelector('dialog[open]')) return;
+  event.preventDefault();
+  setPlanExpanded(false, true);
+}, events);
 document.addEventListener('click', (event) => {
   const deleteId = event.target.closest('[data-delete-source]')?.dataset.deleteSource;
   if (deleteId && currentRoom) {
@@ -350,10 +335,6 @@ document.addEventListener('click', (event) => {
   }
   if (event.target.closest('.add-images') && currentRoom && !uploading) { uploadTarget = currentRoom; $('#image-upload').click(); }
   if (event.target.closest('#rename-room')) roomNameEditor.open();
-  if (event.target.closest('#hide-room-plan')) toggleRoomPlan(true);
-  if (event.target.closest('#show-room-plan')) toggleRoomPlan(false);
-  if (event.target.closest('#view-measured-plan')) $('#measured-plan-dialog').showModal();
-  if (event.target.closest('.close-measured-plan')) $('#measured-plan-dialog').close();
 }, events);
 $('#image-upload').addEventListener('change', (event) => { uploadFiles(Array.from(event.target.files), uploadTarget); event.target.value = ''; });
 let dragDepth = 0;
@@ -382,30 +363,20 @@ window.addEventListener('hashchange', navigate, events);
 window.addEventListener('beforeunload', (event) => { if (uploading || roomNameEditor?.busy || inspirationGallery?.busy || photoViewer?.busy || restyleWizard?.busy || restyleWizard?.unsaved || sourceDeleteDialog?.busy) { event.preventDefault(); event.returnValue = ''; } }, events);
 
 try {
-  plan = createFloorplan($('#floorplan'), (id) => { location.hash = `/room/${id}`; });
+  plan = createFloorplan($('#floorplan'), selectPlanRoom);
 } catch (error) {
   console.error(error);
   $('#floorplan').innerHTML = '<div class="plan-fallback"><img src="./original-floorplan.jpeg" alt="Original apartment floor plan"/><p>Select a room below to open its gallery.</p></div>';
   $('.room-links').classList.add('fallback-links');
 }
-const deviceStatus = $('.device-status');
-const storageStartup = initializeStorage({
-  onProgress: (message) => { if (!disposed) deviceStatus.textContent = message; },
-});
+const storageStartup = initializeStorage();
 refreshIcons();
 navigate();
 
 async function bootstrapStorage() {
   const result = await storageStartup;
   if (disposed) return;
-  if (result.connected) {
-    deviceStatus.textContent = 'Synced privately with Supabase';
-    deviceStatus.title = 'Room data and image files are stored in your private Supabase account.';
-  } else if (supabaseConfiguration().configured) {
-    deviceStatus.textContent = 'On-device storage · Supabase unavailable';
-    deviceStatus.title = 'Your data remains available on this device. Reload to retry Supabase.';
-    if (result.error) console.error(result.error);
-  }
+  if (result.error) handleError(result.error);
   await refreshData();
   const records = await listRoomNames();
   if (!disposed) { applyRoomNames(records); refreshRoomNames(); $('#rename-room').disabled = false; }
@@ -435,7 +406,6 @@ if (import.meta.hot) {
     restyleWizard?.dispose();
     designPage?.dispose();
     sourceDeleteDialog?.dispose();
-    aiModeToggle?.dispose();
     inspirationGallery?.dispose();
     roomNameEditor?.dispose();
   });

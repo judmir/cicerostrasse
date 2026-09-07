@@ -1,0 +1,47 @@
+/* The apartment itself is the navigation, without a surrounding app shell. */
+main { margin: 0; min-height: 100svh; }
+.plan-page { max-width: none; margin: 0; padding: 0; }
+.apartment-plan-viewport { padding: 0; overflow: hidden; }
+#floorplan { width: 100%; min-width: 0; height: 100svh; min-height: 320px; max-height: none; margin: 0 auto; max-width: 1440px; }
+#floorplan:focus { outline: none; }
+.plan-page.is-room { position: sticky; top: 0; z-index: 5; height: 84px; pointer-events: none; }
+.plan-toggle { pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; width: 148px; height: 76px; margin: 0 auto; padding: 6px 10px 4px; background: var(--background); border: 1px solid var(--border); border-top: 0; border-radius: 0 0 12px 12px; }
+.plan-toggle:hover { background: var(--surface); }
+.plan-miniature { width: 118px; height: 52px; }
+.plan-miniature polygon { fill: #34343b; stroke: #a0a0ab; stroke-width: 12; stroke-linejoin: round; }
+.plan-miniature polygon.is-selected { fill: #8e9dcc; stroke: #d8ddec; }
+.plan-toggle > svg:last-child { width: 14px; height: 14px; color: var(--muted); }
+.is-expanded .plan-toggle > svg:last-child { transform: rotate(180deg); }
+.is-room #plan-navigation { pointer-events: auto; position: absolute; top: 84px; left: 50%; transform: translateX(-50%); width: min(1100px, calc(100% - 32px)); background: var(--background); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 20px 60px #0006; overflow: auto; max-height: calc(100svh - 100px); }
+.is-room #floorplan { height: min(56svh, 560px); min-height: 260px; }
+#plan-home { display: inline-block; margin: 16px 20px 0; font-size: 12px; color: var(--muted); }
+#plan-home:hover { color: var(--ink); }
+.plan-room-label.is-selected { color: #e0e5f7; }
+.room-page, .design-page { max-width: 1440px; margin: 0 auto; }
+.room-heading, .design-navigation { border-bottom: 0; padding-top: 20px; padding-bottom: 20px; }
+.room-layout { display: block; }
+.room-collections { border-top: 0; }
+.empty-gallery { height: calc(100svh - 260px); }
+.room-links:not(.fallback-links) { display: none; }
+.room-links.fallback-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 16px; }
+.fallback-links a { padding: 10px 14px; border: 1px solid var(--border); border-radius: 5px; }
+.fallback-links a.is-selected { background: var(--selection); }
+.plan-fallback { height: 100%; display: grid; place-items: center; padding: 24px; }
+.plan-fallback img { max-width: 100%; max-height: 70svh; object-fit: contain; }
+.plan-fallback p { display: none; }
+.plan-page:has(.fallback-links) #floorplan { height: 70svh; }
+.is-room:has(.fallback-links) #floorplan { height: 35svh; }
+
+@media (max-width: 620px) {
+  main { margin: 0; padding: 0; }
+  #floorplan { min-width: 0; min-height: 260px; }
+  .plan-room-label { padding: 12px 2px; max-width: 20%; }
+  .plan-room-name { font-size: 10px; }
+  .plan-room-area, .plan-room-count, .plan-dimension-label { display: none; }
+  .plan-room-label[data-room="kuche"], .plan-room-label[data-room="bad"] { max-width: 10%; }
+  .is-room #plan-navigation { width: calc(100% - 16px); }
+  .is-room #floorplan { height: 38svh; min-height: 240px; }
+  .room-heading { padding: 16px; flex-wrap: wrap; }
+  .room-heading-title { flex-wrap: wrap; }
+  .room-heading-actions { margin-left: auto; }
+}
