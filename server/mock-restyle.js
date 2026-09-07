@@ -35,11 +35,16 @@ export async function runMockRestyle(input, { signal, onProgress = () => {}, wai
       providerIds: {}, createdAt: Date.now(),
     };
   }
-  const instruction = operation === 'refine' ? String(input.instruction || '').trim().replace(/\s+/g, ' ') : null;
+  if (operation === 'restyle' && input.instruction !== undefined && (typeof input.instruction !== 'string' || input.instruction.trim().length > 2000)) throw new RestyleError('invalid_instruction', 'Keep restyling instructions within 2,000 characters.');
+  const instruction = operation === 'refine' ? String(input.instruction || '').trim().replace(/\s+/g, ' ') : input.instruction?.trim() || '';
   if (operation === 'refine' && (instruction.length < 3 || instruction.length > 600)) throw new RestyleError('invalid_refinement', 'Describe one change in 3 to 600 characters.');
   signal?.throwIfAborted();
   const source = await normalizeImage(input.source);
-  if (operation === 'restyle') await normalizeImage(input.inspiration);
+  if (operation === 'restyle') {
+    if (input.inspiration != null) await normalizeImage(input.inspiration);
+    else if (!instruction) throw new RestyleError('invalid_request', 'Provide an inspiration image or restyling instructions.');
+  }
+  if (operation === 'refine' && input.reference !== undefined) await normalizeImage(input.reference);
   const stage = async (name, duration) => {
     signal?.throwIfAborted();
     onProgress(name);

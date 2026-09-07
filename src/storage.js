@@ -205,7 +205,10 @@ export async function saveRestyleVersion({ source, inspiration, result, rendered
   validateImageFile(rendered.blob);
   if (!result?.requestId || !result.spec || !result.geometry) throw new Error('The Restyle result is incomplete.');
   const operation = result.operation === 'refine' ? 'refine' : 'restyle';
-  if (operation === 'restyle') validateImageFile(inspiration);
+  if (operation === 'restyle') {
+    if (inspiration != null) validateImageFile(inspiration);
+    else if (typeof result.instruction !== 'string' || !result.instruction.trim()) throw new Error('Add an inspiration image or restyling instructions.');
+  }
   if (operation === 'refine' && (typeof result.instruction !== 'string' || !result.instruction.trim())) throw new Error('The refinement is missing its edit request.');
   const now = Date.now();
   const mode = result.mode === 'mock' ? 'mock' : 'real';
@@ -220,7 +223,7 @@ export async function saveRestyleVersion({ source, inspiration, result, rendered
   const record = {
     requestId: result.requestId, imageId: image.id, mode, source: sourceSnapshot(source),
     operation, instruction: result.instruction?.trim() || null,
-    inspiration: operation === 'restyle' ? { blob: inspiration, filename: inspiration.name || 'inspiration' } : null,
+    inspiration: operation === 'restyle' && inspiration ? { blob: inspiration, filename: inspiration.name || 'inspiration' } : null,
     spec: result.spec, geometry: result.geometry, models: result.models, prompt: result.prompt,
     providerIds: result.providerIds, createdAt: result.createdAt || now,
   };

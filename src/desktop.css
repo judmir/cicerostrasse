@@ -230,6 +230,14 @@ dialog::backdrop, .restyle-dialog::backdrop { background: #080809a6; backdrop-fi
 }
 @keyframes restyle-merge-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes restyle-merge-scan { from { left: 0; } to { left: calc(100% - 2px); } }
+.restyle-generation-placeholder:has(.restyle-refinement-scan) { height: 210px; }
+.restyle-refinement-scan { position: absolute; inset: 26px 16px auto; display: grid; justify-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
+.restyle-refinement-scan-image { position: relative; width: min(200px, 100%); height: 138px; overflow: hidden; border: 1px solid #b6bdcb88; border-radius: 6px; box-shadow: 0 8px 24px #0004; }
+.restyle-refinement-scan-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.restyle-refinement-scan .restyle-merge-scan { animation-delay: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  .restyle-refinement-scan .restyle-merge-scan { animation: none; left: 50%; }
+}
 @media (max-width: 420px) {
   .restyle-merge { --merge-offset: 76px; }
   .restyle-merge-inspiration { --merge-offset: -76px; }

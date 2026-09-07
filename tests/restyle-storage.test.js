@@ -87,6 +87,18 @@ test('refinements save their request without requiring a second inspiration imag
   assert.equal(record.operation, 'refine'); assert.equal(record.instruction, result.instruction); assert.equal(record.inspiration, null);
 });
 
+test('text-only restyles save their instructions and reject missing guidance', async () => {
+  const data = await fixture(); data.inspiration = null;
+  await assert.rejects(saveRestyleVersion(data), /inspiration image or restyling instructions/);
+  data.result.instruction = 'Use cream walls and warm oak.';
+  const saved = await saveRestyleVersion(data);
+  const record = await getRestyleRecord(saved.restyleId);
+  assert.equal(record.inspiration, null);
+  assert.equal(record.instruction, data.result.instruction);
+  assert.equal(record.operation, 'restyle');
+  assert.equal(saved.parentImageId, data.source.id);
+});
+
 test('aborted provenance write leaves no partial image and can retry with the same result', async () => {
   const data = await fixture(); const previous = IDBObjectStore.prototype.add;
   IDBObjectStore.prototype.add = function (...args) {

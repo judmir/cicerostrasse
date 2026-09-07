@@ -74,7 +74,7 @@ test('restyle instructions survive image changes and retries and accompany both 
     assert.equal(editor.maxLength, 2000);
     editor.value = '  Keep the sofa green.\nUse warm oak.  ';
     editor.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
-    assert.equal(dialog.querySelector('[data-action="run"]').disabled, true);
+    assert.equal(dialog.querySelector('[data-action="run"]').disabled, false);
     assert.equal((await paste([], { target: editor })).defaultPrevented, false);
     await upload();
     assert.equal(dialog.querySelector('[data-restyle-instruction]').value, editor.value);
@@ -86,6 +86,36 @@ test('restyle instructions survive image changes and retries and accompany both 
     assert.equal(stored.result.instruction, editor.value.trim());
     click('again'); await tick();
     assert.equal(dialog.querySelector('[data-restyle-instruction]').value, '');
+  } finally { wizard.dispose(); }
+});
+
+test('text-only restyle runs and saves without inspiration and removing images updates eligibility', async () => {
+  let submitted, stored;
+  const wizard = setup({
+    client: { status: async () => ({ configured: true }), run: async (input) => { submitted = input; return resultFixture(); } },
+    saveVersion: async (data) => { stored = data; return { ...photo, id: 'text-version' }; },
+  });
+  try {
+    wizard.open([photo], photo.id); await tick();
+    const type = (value) => {
+      const editor = dialog.querySelector('[data-restyle-instruction]');
+      editor.value = value; editor.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    };
+    type('   '); assert.equal(dialog.querySelector('[data-action="run"]').disabled, true);
+    await upload(); assert.equal(dialog.querySelector('[data-action="run"]').disabled, false);
+    click('remove-inspiration'); assert.equal(dialog.querySelector('[data-action="run"]').disabled, true);
+    type('Use warm oak and cream walls.');
+    await upload(); click('remove-inspiration');
+    assert.equal(dialog.querySelector('[data-action="run"]').disabled, false);
+    click('run');
+    assert.ok(dialog.querySelector('.restyle-generation-request'));
+    await tick(); await tick();
+    assert.equal(submitted.inspiration, undefined);
+    assert.equal(submitted.instruction, 'Use warm oak and cream walls.');
+    assert.ok(submitted.source.base64);
+    assert.equal(stored.inspiration, null);
+    assert.equal(stored.result.instruction, submitted.instruction);
+    assert.match(dialog.textContent, /New version saved/);
   } finally { wizard.dispose(); }
 });
 
@@ -364,6 +394,92 @@ test('refinement turns a saved version into the next message source and keeps th
     assert.equal('inspiration' in inputs[0], false);
     assert.equal(savedRequest.source.id, version.id); assert.equal(savedRequest.inspiration, null);
     assert.match(dialog.textContent, /Continue refining/);
+  } finally { wizard.dispose(); }
+});
+
+for (const withReference of [false, true]) test(`refinement scans only the current source through saving (${withReference ? 'with' : 'without'} reference)`, async () => {
+  let advance, finishRender, finishSave;
+  const rendering = new Promise((resolve) => { finishRender = resolve; });
+  const saving = new Promise((resolve) => { finishSave = resolve; });
+  const wizard = setup({
+    client: { status: async () => ({ configured: true }), run: async (_input, { onProgress }) => { advance = onProgress; return rendering; } },
+    saveVersion: async () => saving,
+  });
+  try {
+    wizard.open([photo], photo.id, { flow: 'refine' }); await tick();
+    const editor = dialog.querySelector('[data-refinement-instruction]');
+    editor.value = 'Make the walls warmer.';
+    editor.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    if (withReference) await paste();
+    click('run');
+    const placeholder = dialog.querySelector('.restyle-generation-placeholder');
+    const scan = placeholder.querySelector('.restyle-refinement-scan');
+    assert.ok(scan);
+    assert.equal(placeholder.getAttribute('aria-hidden'), 'true');
+    assert.equal(placeholder.querySelectorAll('img').length, 1);
+    assert.equal(await (await fetch(scan.querySelector('img').src)).text(), await photo.blob.text());
+    assert.ok(scan.querySelector('.restyle-merge-scan'));
+    assert.equal(placeholder.querySelector('.restyle-merge'), null);
+    assert.equal(placeholder.querySelector('.restyle-generation-request'), null);
+    await tick();
+    for (const stage of ['rendering', 'checking']) {
+      advance(stage);
+      assert.equal(dialog.querySelector('.restyle-refinement-scan'), scan);
+    }
+    assert.match(dialog.querySelector('.restyle-live').textContent, /Checking changes/);
+    finishRender({ ...resultFixture(), operation: 'refine' }); await tick();
+    assert.equal(dialog.querySelector('.restyle-refinement-scan'), scan);
+    assert.match(dialog.querySelector('.restyle-live').textContent, /Saving/);
+    finishSave({ ...photo, id: 'refined-version' }); await tick();
+    assert.equal(dialog.querySelector('.restyle-generation'), null);
+    assert.ok(dialog.querySelector('img[alt="Refined version"]'));
+  } finally { wizard.dispose(); }
+});
+
+test('refinement accepts uploaded and pasted references alongside text, supports removal and retry', async () => {
+  const inputs = [];
+  const wizard = setup({ client: {
+    status: async () => ({ configured: true }),
+    run: async (input) => {
+      inputs.push(input);
+      if (inputs.length === 1) throw new Error('Try again.');
+      return { ...resultFixture(), operation: 'refine' };
+    },
+  } });
+  try {
+    wizard.open([photo], photo.id, { flow: 'refine' }); await tick();
+    const editor = dialog.querySelector('[data-refinement-instruction]');
+    editor.value = 'Use the sofa in the reference image.';
+    editor.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    editor.focus(); editor.setSelectionRange(4, 4);
+    assert.equal((await paste([], { target: editor })).defaultPrevented, false);
+    assert.equal((await paste([inspiration], { target: editor })).defaultPrevented, true);
+    assert.ok(dialog.querySelector('img[alt="Reference image"]'));
+    assert.equal(document.activeElement.value, editor.value);
+    assert.equal(document.activeElement.selectionStart, 4);
+    await paste([new File(['bad'], 'unsupported.svg', { type: 'image/svg+xml' })]);
+    assert.ok(dialog.querySelector('[role="alert"]'));
+    assert.equal(dialog.querySelector('.restyle-filename').textContent, inspiration.name);
+    click('remove-reference');
+    assert.equal(dialog.querySelector('img[alt="Reference image"]'), null);
+    assert.equal(dialog.querySelector('[data-action="run"]').disabled, false);
+    const fileInput = dialog.querySelector('[data-reference]');
+    Object.defineProperty(fileInput, 'files', { value: [inspiration] });
+    fileInput.dispatchEvent(new dom.window.Event('change', { bubbles: true })); await tick();
+    const replacement = new File(['new sofa'], 'sofa.png', { type: 'image/png' });
+    await paste([replacement], { items: false });
+    click('run'); await tick();
+    assert.ok(dialog.querySelector('img[alt="Reference image"]'));
+    assert.equal(dialog.querySelector('[data-refinement-instruction]').value, editor.value);
+    click('run'); await tick(); await tick();
+    assert.equal(inputs[1].instruction, editor.value);
+    assert.equal(Buffer.from(inputs[1].reference.base64, 'base64').toString(), 'new sofa');
+    assert.ok(inputs[1].source.base64);
+    assert.equal('inspiration' in inputs[1], false);
+    assert.equal((await paste()).defaultPrevented, false);
+    click('again'); await tick();
+    assert.equal(dialog.querySelector('img[alt="Reference image"]'), null);
+    assert.equal(dialog.querySelector('[data-refinement-instruction]').value, '');
   } finally { wizard.dispose(); }
 });
 

@@ -24,6 +24,73 @@ test('mock returns a valid PNG and structured test provenance with time for ever
   assert.equal(metadata.width / metadata.height, 24 / 16);
 });
 
+test('mock restyle accepts inspiration only, text only, or both and retains trimmed instructions', async () => {
+  const { inspiration, ...data } = await input();
+  for (const optionalImage of [{}, { inspiration: null }, { inspiration }]) {
+    const instruction = 'Use warm oak.\nKeep the sofa green.';
+    const stages = [];
+    const result = await runMockRestyle({ ...data, ...optionalImage, instruction: `  ${instruction}  ` }, { wait: async () => {}, onProgress: (stage) => stages.push(stage) });
+    assert.equal(result.instruction, instruction);
+    assert.equal(result.operation, 'restyle');
+    assert.equal(result.mode, 'mock');
+    assert.ok(styleSpecSchema.safeParse(result.spec).success);
+    assert.deepEqual(stages, ['extracting', 'rendering', 'checking']);
+    assert.equal(result.geometry.status, 'unchecked');
+  }
+  for (const instruction of [undefined, '', ' \n ']) {
+    const result = await runMockRestyle({ ...data, inspiration, instruction }, { wait: async () => {} });
+    assert.equal(result.instruction, undefined);
+  }
+});
+
+test('mock restyle requires inspiration or text and validates supplied images and instruction bounds', async () => {
+  const { inspiration, ...data } = await input(); const stages = [];
+  const options = { wait: async () => assert.fail('Invalid input must not start simulation'), onProgress: (stage) => stages.push(stage) };
+  for (const optionalImage of [{}, { inspiration: null }]) {
+    for (const instruction of [undefined, '', ' \n ']) {
+      await assert.rejects(runMockRestyle({ ...data, ...optionalImage, instruction }, options), { code: 'invalid_request' });
+    }
+  }
+  for (const inspiration of [false, '', 'image', 42, {}, { base64: 'bad' }, { base64: Buffer.from('not an image').toString('base64') }]) {
+    for (const instruction of [undefined, 'Use warm oak.']) {
+      await assert.rejects(runMockRestyle({ ...data, inspiration, instruction }, options), { code: 'invalid_image' });
+    }
+  }
+  for (const optionalImage of [{}, { inspiration }]) {
+    for (const instruction of [null, false, 42, {}, 'a'.repeat(2001)]) {
+      await assert.rejects(runMockRestyle({ ...data, ...optionalImage, instruction }, options), { code: 'invalid_instruction' });
+    }
+  }
+  assert.deepEqual(stages, []);
+  const instruction = 'a'.repeat(2000);
+  const result = await runMockRestyle({ ...data, instruction: ` ${instruction} ` }, { wait: async () => {} });
+  assert.equal(result.instruction, instruction);
+});
+
+test('mock refinement accepts an optional reference without changing its text-only simulation', async () => {
+  const { inspiration, ...data } = await input();
+  const request = { ...data, operation: 'refine', instruction: '  Replace the sofa.  ' };
+  const stages = [];
+  const textOnly = await runMockRestyle(request, { wait: async () => {} });
+  const withReference = await runMockRestyle({ ...request, reference: inspiration }, { wait: async () => {}, onProgress: (stage) => stages.push(stage) });
+  assert.deepEqual(stages, ['extracting', 'rendering', 'checking']);
+  assert.equal(textOnly.operation, 'refine');
+  assert.equal(textOnly.instruction, 'Replace the sofa.');
+  assert.deepEqual(withReference.image, textOnly.image);
+  assert.deepEqual(withReference.spec, textOnly.spec);
+  assert.equal(withReference.prompt, textOnly.prompt);
+  assert.match(withReference.prompt, /No AI generation/);
+  assert.equal(withReference.geometry.status, 'unchecked');
+});
+
+test('mock refinement rejects invalid references before simulating progress', async () => {
+  const data = await input(); const stages = [];
+  for (const reference of [null, false, 'image', {}, { base64: 'bad' }, { base64: Buffer.from('not an image').toString('base64') }]) {
+    await assert.rejects(runMockRestyle({ ...data, operation: 'refine', instruction: 'Replace the sofa.', reference }, { wait: async () => assert.fail('Invalid references must not start simulation'), onProgress: (stage) => stages.push(stage) }), { code: 'invalid_image' });
+  }
+  assert.deepEqual(stages, []);
+});
+
 test('mock runner never reads credentials or invokes the real runner, even after a mock failure', async () => {
   const runner = createRunner({
     getConfig: () => assert.fail('Mock execution must not read credentials'),

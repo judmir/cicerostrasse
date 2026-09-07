@@ -55,7 +55,8 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
   }
 
   function generationInputs(source) {
-    if (refining()) return `<div class="restyle-generation-inputs restyle-generation-refinement"><span><img src="${imageURL(source.blob)}" alt=""/>Current version</span><b>→</b><span class="restyle-generation-request">${escape(instruction)}</span></div>`;
+    if (refining()) return `<div class="restyle-refinement-scan"><div class="restyle-refinement-scan-image"><img src="${imageURL(source.blob)}" alt=""/><span class="restyle-merge-scan"></span></div><span>Current version</span></div>`;
+    if (!inspiration) return `<div class="restyle-generation-inputs restyle-generation-refinement"><span><img src="${imageURL(source.blob)}" alt=""/>Current version</span><b>→</b><span class="restyle-generation-request">${escape(instruction)}</span></div>`;
     const sourceURL = imageURL(source.blob), inspirationURL = imageURL(inspiration);
     return `<div class="restyle-merge">
       <div class="restyle-merge-input restyle-merge-source"><img src="${sourceURL}" alt=""/><span>Source</span></div>
@@ -72,6 +73,12 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
         <label for="restyle-instruction">What should change?</label>
         <textarea id="restyle-instruction" data-refinement-instruction rows="5" maxlength="600" placeholder="For example: Make the walls a warmer white. Keep everything else the same.">${escape(instruction)}</textarea>
         <p class="restyle-help">Describe one change. Everything else stays the same.</p>
+        <div class="restyle-reference" aria-label="Optional reference image">
+          ${inspiration ? `<div class="restyle-reference-preview"><img src="${imageURL(inspiration)}" alt="Reference image"/><span class="restyle-filename">${escape(inspiration.name)}</span><button class="text-button" data-action="remove-reference" ${busy() ? 'disabled' : ''}>Remove image</button></div>` : ''}
+          <label class="button secondary restyle-file-button">${inspiration ? 'Change reference image' : 'Add reference image'}<input type="file" data-reference accept="image/jpeg,image/png,image/webp,image/gif,image/avif" ${busy() ? 'disabled' : ''}/></label>
+          <p class="restyle-help" id="restyle-reference-help">Optional: upload, drop, or paste an image with Cmd+V / Ctrl+V. Up to 25 MB. Describe what to use from it above.</p>
+          <p class="restyle-help">${mode === 'mock' ? 'Mock does not interpret your text or reference image.' : 'The current version, reference image, and instructions are sent to OpenAI when you generate.'}</p>
+        </div>
       </div>
     </div>`;
   }
@@ -92,12 +99,12 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
         ? `<div class="restyle-designs" role="group" aria-label="Choose a saved design">${photos.map((photo) => `<button class="restyle-design" data-design="${escape(photo.id)}" aria-pressed="${photo.id === selectedId}"><img src="${imageURL(photo.thumbnail || photo.blob)}" alt=""/><span>${escape(photo.title)}</span></button>`).join('')}</div>`
         : '<p class="restyle-empty">Add an image to this room before restyling.</p>';
     }
-    return `<div class="restyle-comparison">${source ? figure(source.blob, 'Current design') : ''}<div class="restyle-inspiration"><p>Inspiration image</p>${inspiration ? `<div class="restyle-preview"><img src="${imageURL(inspiration)}" alt="Inspiration image"/></div><p class="restyle-filename">${escape(inspiration.name)}</p>` : '<div class="restyle-drop" data-drop>Drop or paste one inspiration image here</div>'}
+    return `<div class="restyle-comparison">${source ? figure(source.blob, 'Current design') : ''}<div class="restyle-inspiration"><p>Inspiration image (optional)</p>${inspiration ? `<div class="restyle-preview"><img src="${imageURL(inspiration)}" alt="Inspiration image"/></div><p class="restyle-filename">${escape(inspiration.name)}</p><button class="text-button" data-action="remove-inspiration" ${busy() ? 'disabled' : ''}>Remove image</button>` : '<div class="restyle-drop" data-drop>Drop or paste one inspiration image here, or use instructions below</div>'}
       <label class="button secondary restyle-file-button">${inspiration ? 'Change image' : 'Choose image'}<input type="file" data-inspiration accept="image/jpeg,image/png,image/webp,image/gif,image/avif" ${busy() ? 'disabled' : ''}/></label><p class="restyle-help">Or paste with ⌘V / Ctrl+V. Up to 25 MB.</p></div></div>
       <div class="restyle-instructions">
         <label for="restyle-style-instruction">Restyling instructions <span>(optional)</span></label>
         <textarea id="restyle-style-instruction" data-restyle-instruction rows="3" maxlength="2000" aria-describedby="restyle-instruction-help" placeholder="For example: Use the warm wood and soft lighting from the inspiration, but keep the sofa green and make the walls cream.">${escape(instruction)}</textarea>
-        <p id="restyle-instruction-help" class="restyle-help">Tell the AI what to take from the inspiration and what to keep. Layout and furniture shapes stay the same. Up to 2,000 characters.</p>
+        <p id="restyle-instruction-help" class="restyle-help">Add an inspiration image, instructions, or both. Describe the style you want or what to take from the image. Layout and furniture shapes stay the same. Up to 2,000 characters.</p>
       </div>
       <p class="restyle-help">${mode === 'mock' ? 'Mock applies a local color adjustment only; it does not interpret your instructions. No AI or API charges.' : 'Transfers style while keeping the layout. Selected images and instructions are sent to OpenAI when you press Restyle.'}</p>`;
   }
@@ -111,13 +118,15 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
     const generating = Boolean(controller || saving);
     onStateChange({ busy: busy(), mode });
     if (generating && urls.length && dialog.querySelector('.restyle-generation')) { updateGeneration(); return; }
+    const editor = dialog.querySelector('[data-refinement-instruction], [data-restyle-instruction]');
+    const selection = editor && document.activeElement === editor ? [editor.selectionStart, editor.selectionEnd] : null;
     const focused = dialog.contains(document.activeElement) ? document.activeElement?.dataset.action : null;
     releaseURLs();
     const source = currentSource();
     const heading = generating
       ? `Creating your ${refining() ? 'refinement' : 'restyle'}`
       : result ? (refining() ? 'Refinement ready' : result.spec.styleName)
-        : refining() ? 'Refine this version' : step === 1 ? 'Choose a design' : 'Add inspiration';
+        : refining() ? 'Refine this version' : step === 1 ? 'Choose a design' : 'Describe your restyle';
     const saveStatus = !generating && result ? (saved ? 'New version saved' : 'Not saved yet') : '';
     const generation = generating && source ? `<div class="restyle-generation">
       <div class="restyle-generation-placeholder" aria-hidden="true">${generationInputs(source)}</div>
@@ -125,7 +134,7 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
       <ol class="restyle-progress" aria-label="${refining() ? 'Refinement' : 'Restyle'} progress">${stages().map(([, label]) => `<li><span class="restyle-step-indicator" aria-hidden="true"></span><span class="restyle-step-label">${label}</span><span class="restyle-step-state"></span></li>`).join('')}</ol>
       <p class="restyle-live" role="status" aria-live="polite" aria-atomic="true"></p>
     </div>` : '';
-    const primaryDisabled = busy() || !selected() || !configured() || (!refining() && (step === 2 && !inspiration)) || (refining() && instruction.trim().length < 3);
+    const primaryDisabled = busy() || !selected() || !configured() || (!refining() && (step === 2 && !inspiration && !instruction.trim())) || (refining() && instruction.trim().length < 3);
     const primaryLabel = refining() ? (mode === 'mock' ? 'Test refinement' : 'Generate refinement') : step === 1 ? 'Continue' : reading ? 'Opening image…' : mode === 'mock' ? 'Test Restyle' : 'Restyle';
     dialog.innerHTML = `<div class="restyle-shell ${refining() ? 'restyle-refinement-shell' : ''}">
       <header class="restyle-heading"><div><h2 id="restyle-title">${escape(heading)}</h2>${saveStatus ? `<p class="restyle-save-status" role="status">${saveStatus}</p>` : ''}</div><button class="icon-button" data-action="close" aria-label="Close ${refining() ? 'refinement' : 'Restyle'}" ${saving ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button></header>
@@ -137,6 +146,11 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
         <button class="button secondary" data-action="download">Download</button>${saved ? `${refining() ? '' : '<button class="button secondary" data-action="refine">Fine-tune this version</button>'}<button class="button secondary" data-action="again">${refining() ? 'Continue refining' : fixedSource ? 'Create another version' : 'Restyle this version'}</button><button class="button primary" data-action="view">${fixedSource || refining() ? 'Back to versions' : 'View version'}</button>` : `<button class="button primary" data-action="save" ${busy() ? 'disabled' : ''}>${saving ? 'Saving…' : 'Retry save'}</button>`}` : `<button class="button secondary" data-action="${step === 1 || fixedSource || refining() ? 'close' : 'back'}" ${busy() ? 'disabled' : ''}>${step === 1 || fixedSource || refining() ? 'Cancel' : 'Back'}</button><button class="button primary" data-action="${!refining() && step === 1 ? 'next' : 'run'}" ${primaryDisabled ? 'disabled' : ''}>${primaryLabel}</button>`}</footer>
     </div>`;
     if (generating) updateGeneration();
+    if (selection && !generating && !result) {
+      const nextEditor = dialog.querySelector('[data-refinement-instruction], [data-restyle-instruction]');
+      nextEditor?.focus({ preventScroll: true });
+      nextEditor?.setSelectionRange(...selection);
+    }
     if (focused) (dialog.querySelector(`[data-action="${focused}"]`) || dialog.querySelector(`[data-action="${generating ? 'cancel' : 'close'}"]`))?.focus({ preventScroll: true });
   }
 
@@ -149,7 +163,7 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
 
   async function setInspiration(files) {
     if (controller || saving) return;
-    if (files.length !== 1) { error = 'Choose exactly one inspiration image.'; draw(); return; }
+    if (files.length !== 1) { error = `Choose exactly one ${refining() ? 'reference' : 'inspiration'} image.`; draw(); return; }
     const token = ++previewRead;
     reading = true; error = ''; draw();
     try {
@@ -176,7 +190,7 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
   async function run() {
     if (busy() || result || !selected() || !configured()) return;
     instruction = instruction.trim();
-    if (!refining() && !inspiration) return;
+    if (!refining() && !inspiration && !instruction) return;
     if (refining() && instruction.length < 3) { error = 'Describe the change you want to make.'; draw(); return; }
     snapshot = sourceSnapshot(selected());
     controller = new AbortController();
@@ -184,8 +198,8 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
     error = ''; stage = 'extracting'; draw();
     try {
       const input = { requestId: crypto.randomUUID(), mode, source: await imagePayload(snapshot.blob) };
-      if (refining()) { input.operation = 'refine'; input.instruction = instruction; }
-      else { input.inspiration = await imagePayload(inspiration); if (instruction) input.instruction = instruction; }
+      if (refining()) { input.operation = 'refine'; input.instruction = instruction; if (inspiration) input.reference = await imagePayload(inspiration); }
+      else { if (inspiration) input.inspiration = await imagePayload(inspiration); if (instruction) input.instruction = instruction; }
       operation.signal.throwIfAborted();
       const completed = await client.run(input, { signal: operation.signal, onProgress(value) { stage = value; draw(); } });
       operation.signal.throwIfAborted();
@@ -232,6 +246,8 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
     if (action === 'mode-mock' || action === 'mode-real') { setAIMode(action === 'mode-mock' ? 'mock' : 'real'); return; }
     if (action === 'recheck') checkConfig();
     if (busy()) return;
+    if (action === 'remove-reference' && refining() && !result) { inspiration = null; error = ''; draw(); dialog.querySelector('[data-reference]')?.focus(); }
+    if (action === 'remove-inspiration' && !refining() && !result) { inspiration = null; error = ''; draw(); dialog.querySelector('[data-inspiration]')?.focus(); }
     if (action === 'next' && selected()) { step = 2; error = ''; draw(); dialog.querySelector('[data-inspiration]')?.focus(); }
     if (action === 'back' && !fixedSource && !refining()) { step = 1; error = ''; draw(); }
     if (action === 'run') { const editor = dialog.querySelector('[data-refinement-instruction], [data-restyle-instruction]'); if (editor) instruction = editor.value; run(); }
@@ -248,13 +264,13 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
     if (!event.target.matches('[data-refinement-instruction], [data-restyle-instruction]')) return;
     instruction = event.target.value;
     const submit = dialog.querySelector('[data-action="run"]');
-    if (submit) submit.disabled = busy() || !selected() || !configured() || (refining() ? instruction.trim().length < 3 : !inspiration);
+    if (submit) submit.disabled = busy() || !selected() || !configured() || (refining() ? instruction.trim().length < 3 : !inspiration && !instruction.trim());
   }, events);
-  dialog.addEventListener('change', (event) => { if (event.target.matches('[data-inspiration]')) setInspiration(Array.from(event.target.files)); }, events);
+  dialog.addEventListener('change', (event) => { if (event.target.matches('[data-inspiration], [data-reference]')) setInspiration(Array.from(event.target.files)); }, events);
   dialog.addEventListener('dragover', (event) => { event.preventDefault(); event.stopPropagation(); }, events);
-  dialog.addEventListener('drop', (event) => { event.preventDefault(); event.stopPropagation(); if (!refining() && step === 2 && !result) setInspiration(Array.from(event.dataTransfer.files)); }, events);
+  dialog.addEventListener('drop', (event) => { event.preventDefault(); event.stopPropagation(); if (step === 2 && !result) setInspiration(Array.from(event.dataTransfer.files)); }, events);
   dialog.ownerDocument.addEventListener('paste', (event) => {
-    if (!dialog.open || refining() || step !== 2 || result || busy() || event.defaultPrevented) return;
+    if (!dialog.open || step !== 2 || result || busy() || event.defaultPrevented) return;
     const clipboard = event.clipboardData;
     let files = Array.from(clipboard?.items || []).filter((item) => item.kind === 'file' && item.type.startsWith('image/')).map((item) => item.getAsFile()).filter(Boolean);
     if (!files.length) files = Array.from(clipboard?.files || []).filter((file) => file.type.startsWith('image/'));
