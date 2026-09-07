@@ -1,11 +1,19 @@
 # Session Workflow
 
+## Keep the Main Folder on Main
+
+- The primary `Cicerosstrase` project folder is the permanent checkout of `main`. Keep it on `main` so the user's existing development server, normally at `http://127.0.0.1:5173`, always serves the latest locally merged application.
+- Feature branches live in temporary sibling worktrees, not in the primary folder. These are isolated working copies of the same repository, not separate projects. Do not switch the primary folder to a feature branch.
+- Merge approved sessions directly into `main` in the primary folder so its files and running Vite server receive the changes. Do not merge elsewhere and leave the primary folder serving an older branch.
+- Preserve the user's main development server across sessions and feature cleanup. After merging, verify it serves the updated files if running, and report its URL. Vite normally reloads automatically; if dependency or configuration changes require a restart or install, explain that and coordinate rather than stopping the user's server silently.
+- If the primary folder is unexpectedly on another branch or `main` is checked out elsewhere, inspect the state and ask before relocating checkouts. Never discard local changes to enforce this layout.
+
 ## Isolate Each Feature
 
 - At the start of each new implementation session, create a dedicated Git worktree and a uniquely named branch before editing application files. Never develop in the shared checkout or reuse another session's branch.
 - Inspect `git status`, `git worktree list`, and existing branches first. Preserve all existing changes, worktrees, and running servers belonging to the user or other sessions.
 - Default to branching from local `main`. If the task needs unmerged work from another branch, confirm the intended base with the user rather than silently including it.
-- Before creating a new feature branch or its worktree, update local `main` with `git pull --ff-only` from its configured upstream in a clean checkout of `main`. If needed, create a temporary integration worktree for `main`; never switch the shared checkout or pull into another session's feature branch. Inspect any existing `main` worktree and use it only if clean.
+- Before creating a new feature branch or its worktree, update local `main` with `git pull --ff-only` from its configured upstream in the clean primary `Cicerosstrase` folder. Never pull into another session's feature branch or create a separate integration checkout for `main`.
 - Create the feature branch from the updated local `main` only after the pull succeeds. If the pull fails, the upstream is missing, `main` has diverged, or its checkout is dirty, report the blocker and ask before proceeding with a stale base. Never reset local commits, stash another session's changes, or force an update to make the pull succeed.
 - Use a sibling directory such as `../Cicerosstrase-worktrees/<session-name>` and a branch such as `feature/<topic>-<unique-suffix>`. Verify the parent directory before creating it, and keep worktrees outside the application directory.
 - If the session already has its own isolated worktree and branch, continue there. Do not create another worktree for each follow-up message in the same session.
@@ -23,15 +31,15 @@
 
 ## Finish Only on Request
 
-- Completing a requested change is not permission to commit or merge. Wait until the user says "done", "merge", or explicitly asks to commit and integrate the session. This also applies to documentation-only updates to `AGENTS.md`.
-- Leave the feature branch and preview available for review while waiting. In this feature-review context, "done" or "merge" authorizes committing the session's changes and merging its branch into local `main`.
+- Completing a requested change is not permission to commit, merge, or push. Wait until the user says "done", "finished", "merge", or explicitly asks to commit and integrate the session. This also applies to documentation-only updates to `AGENTS.md`.
+- Leave the feature branch and preview available for review while waiting. When the user says "done", "finished", or "merge", always commit the session's changes, merge them into `main` in the primary folder, and push `main` to its configured GitHub upstream without a separate push confirmation. This is required, not merely permitted, and includes documentation-only changes to `AGENTS.md`. Do not stop after a local commit or merge. Only an explicit user restriction (for example, "merge locally only") or a reported safety or verification blocker may prevent the push.
 - Before committing, inspect `git status`, `git diff`, and `git log --oneline -10`. Stage only intended session files, check for secrets, and use a concise commit message consistent with the repository. Do not amend commits unless explicitly requested.
 - Before merging, review all session commits and the diff against current `main`, run relevant tests and the build, and report any verification failures. Resolve failures before integrating; ask the user if a blocker requires a decision.
 - For documentation-only changes, review the documentation diff and run `git diff --check`; application tests, builds, and preview servers are not required when no application code or configuration changed.
-- Merge into `main` in a clean integration checkout. If `main` is already checked out in another worktree, inspect that worktree and use it only if clean; otherwise stop and ask. If necessary, create a separate integration worktree for `main`. Do not switch the shared working checkout away from its current branch.
+- Merge into `main` in the clean primary `Cicerosstrase` folder. Check its branch and status immediately before merging. If it has uncommitted changes, stop and ask; never stash or commit unrelated work to make it clean. For authorized documentation-only updates already made on `main`, commit only those session changes there without creating an artificial feature merge.
 - Never stash, discard, overwrite, or commit another session's changes. Never force-push, reset branches, or bypass Git hooks. If conflicts involve unfamiliar concurrent work, ask the user rather than guessing.
-- Verify the merged result with relevant checks. Report the merge outcome and any remaining issues. Do not push unless explicitly requested.
-- After a successful merge and verification, stop only this session's preview process. Remove its worktree and branch only after confirming the branch is merged and the worktree contains no uncommitted changes or untracked files that need preserving; never force cleanup. Leave all other sessions and servers alone.
+- Verify the merged result with relevant checks, then push `main` to its configured GitHub upstream as authorized above. Review all outgoing commits before pushing, including any already-local commits; ask before publishing unfamiliar work. If the upstream is missing or the push is rejected, report the blocker and ask rather than force-pushing. Verify and report both the merge and push outcomes and any remaining issues.
+- After a successful merge, verification, and authorized push (or an explicitly local-only merge), stop only this session's preview process. Remove its worktree and branch only after confirming the branch is merged and the worktree contains no uncommitted changes or untracked files that need preserving; never force cleanup. Leave all other sessions and servers alone.
 
 ## Discard on Request
 
