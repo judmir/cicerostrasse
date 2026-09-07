@@ -1,5 +1,14 @@
 # Session Workflow
 
+## Fast Changes: Ignore Worktree
+
+- When the user explicitly says `ignore worktree`, use the primary `Cicerosstrase` checkout on `main` directly for the current session. This overrides the worktree, feature-branch, isolated-preview, merge, and worktree-cleanup requirements below, not the safety or verification rules. Normal isolation remains the default for other sessions.
+- Inspect the branch, status, and worktrees before editing. If the primary checkout is not on `main`, ask before proceeding. If this session already has a feature worktree with changes, ask how to handle those changes rather than silently moving or discarding them.
+- Before application changes, update a clean `main` with `git pull --ff-only`. If the checkout is dirty or the pull fails, report the blocker and ask before proceeding. Never stash, discard, or overwrite unrelated work to enable this mode.
+- Make edits and run relevant checks directly in the primary checkout. Reuse the user's main development server when running; no separate preview is required. Preserve that server and verify and report its URL for application changes.
+- Wait for the user to say "done", "finished", "merge", or explicitly request integration. Then review and commit only this session's changes directly on `main`, run the required verification, and push `main` to its configured upstream without a separate push confirmation. No feature merge is needed. Review all outgoing commits and ask before publishing unfamiliar work; retain all existing commit, verification, and push safeguards below.
+- If the user rejects the session with "remove" or "delete", undo only this session's uncommitted changes after checking for overlapping edits. Never remove the primary checkout or delete `main`; ask before reverting already committed or pushed changes.
+
 ## Keep the Main Folder on Main
 
 - The primary `Cicerosstrase` project folder is the permanent checkout of `main`. Keep it on `main` so the user's existing development server, normally at `http://127.0.0.1:5173`, always serves the latest locally merged application.
