@@ -35,6 +35,7 @@ export function createFloorplan(container, onSelect) {
   const labels = [];
   const dimensionLabels = [];
   let hovered = null;
+  let selectedRoom = null;
   let disposed = false;
   let visible = true;
   let labelCounts = {};
@@ -91,7 +92,7 @@ export function createFloorplan(container, onSelect) {
   }
 
   // Reproduce the dimension chains on the supplied measured drawing.
-  // Anchor them to the existing trace, using the same values as room sidebars.
+  // Anchor them to the existing trace using the measured room dimensions.
   horizontalDimension(24, 390, -75, 20, 20, roomMeasurements.raum3.width);
   horizontalDimension(390, 930, -75, 20, 20, roomMeasurements.flur.width);
   horizontalDimension(930, 1185, -75, 20, 20, roomMeasurements.raum1.width);
@@ -176,10 +177,13 @@ export function createFloorplan(container, onSelect) {
   function paint() {
     for (const floor of floors) {
       const room = rooms.find((item) => item.id === floor.userData.roomId);
-      floor.material.color.set(room.id === hovered ? '#40404b' : '#2a2a30');
+      floor.material.color.set(room.id === selectedRoom ? '#465d70' : room.id === hovered ? '#40404b' : '#2a2a30');
     }
     for (const label of labels) {
       label.element.classList.toggle('hovered', label.room.id === hovered);
+      label.element.classList.toggle('is-selected', label.room.id === selectedRoom);
+      if (label.room.id === selectedRoom) label.element.setAttribute('aria-current', 'page');
+      else label.element.removeAttribute('aria-current');
       const count = labelCounts[label.room.id] || 0;
       label.count.textContent = `${count} ${count === 1 ? 'image' : 'images'}`;
       label.count.hidden = count === 0;
@@ -246,6 +250,7 @@ export function createFloorplan(container, onSelect) {
   return {
     refreshNames() { for (const label of labels) { label.element.querySelector('.plan-room-name').textContent = label.room.name; label.element.setAttribute('aria-label', `Open ${label.room.name} gallery`); label.element.title = label.room.name; } },
     setCounts(counts) { labelCounts = counts; paint(); },
+    setSelectedRoom(id) { selectedRoom = id; paint(); },
     setVisible(value) { visible = value; if (value) { hovered = null; resize(); paint(); } },
     resize,
     dispose() {

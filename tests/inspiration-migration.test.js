@@ -17,7 +17,7 @@ test('version 2 upgrade retains sources, version lineage, restyle records and ro
     request.onsuccess = () => { request.result.close(); resolve(); }; request.onerror = () => reject(request.error);
   });
   const storage = await import('../src/storage.js');
-  assert.equal((await storage.openDatabase()).version, 4);
+  assert.equal((await storage.openDatabase()).version, 5);
   assert.equal(await (await storage.getImage('source')).blob.text(), 'original');
   assert.equal((await storage.getImage('version')).rootImageId, 'source');
   assert.equal((await storage.getRestyleRecord('saved-restyle')).imageId, 'version');
