@@ -27,7 +27,8 @@ export function initializeStorage(options) {
 export function openDatabase() {
   if (connection) return connection;
   connection = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DATABASE, 5);
+    let request = indexedDB.open(DATABASE, 5);
+    let newerVersion = false;
     request.onupgradeneeded = (event) => {
       const db = request.result;
       if (event.oldVersion < 1) {
@@ -53,10 +54,56 @@ export function openDatabase() {
       }
     };
     request.onsuccess = () => {
+      if (newerVersion) {
+        try {
+          const schema = [
+            ['images', 'id', ['roomId', 'rootImageId', 'parentImageId']],
+            ['notes', 'roomId', []],
+            ['restyles', 'requestId', []],
+            ['inspirations', 'id', ['roomId']],
+            ['roomNames', 'roomId', []],
+            ['firstDesignDrafts', 'roomId', []],
+            ['firstDesigns', 'requestId', ['roomId']],
+          ];
+          const tx = request.result.transaction(schema.map(([name]) => name), 'readonly');
+          for (const [name, keyPath, indexes] of schema) {
+            const store = tx.objectStore(name);
+            if (store.keyPath !== keyPath || store.autoIncrement) throw new Error('Incompatible store');
+            for (const name of indexes) {
+              const index = store.index(name);
+              if (index.keyPath !== name || index.unique || index.multiEntry) throw new Error('Incompatible index');
+            }
+            for (const name of store.indexNames) {
+              if (!indexes.includes(name) && store.index(name).unique) throw new Error('Incompatible index');
+            }
+          }
+        } catch {
+          request.result.close();
+          connection = null;
+          reject(new Error('This database requires a newer app. Update Cicerostraße or open it with the newer app version that saved your data.'));
+          return;
+        }
+      }
       request.result.onversionchange = () => { request.result.close(); connection = null; };
       resolve(request.result);
     };
-    request.onerror = () => { connection = null; reject(request.error); };
+    request.onerror = () => {
+      if (!newerVersion && request.error?.name === 'VersionError') {
+        newerVersion = true;
+        const previous = request;
+        try {
+          request = indexedDB.open(DATABASE);
+          // A database deleted between attempts must not be recreated as an empty database.
+          request.onupgradeneeded = () => request.transaction.abort();
+          request.onsuccess = previous.onsuccess;
+          request.onerror = previous.onerror;
+          request.onblocked = previous.onblocked;
+        } catch (error) { connection = null; reject(error); }
+        return;
+      }
+      connection = null;
+      reject(request.error);
+    };
     request.onblocked = () => { connection = null; reject(new Error('Close other Cicerostraße windows and try again.')); };
   });
   return connection;

@@ -74,6 +74,43 @@ test('source routes survive hash refresh/back navigation and reject malformed ro
   assert.equal(parseGalleryRoute('#/room/kuche/design/<script>'), null);
 });
 
+test('versions context stays visible and focusable across loading, recovered and missing originals', async () => {
+  const dom = new JSDOM('<section id="page"></section>');
+  globalThis.document = dom.window.document; globalThis.AbortController = dom.window.AbortController;
+  const container = document.querySelector('#page');
+  let finish;
+  const page = createDesignPage(container, { escape, icon, refreshIcons: () => {},
+    getRecord: () => new Promise((resolve) => { finish = resolve; }), onView: () => {}, onRestyle: () => {},
+  });
+  const options = { room: { id: 'kuche', name: 'Kitchen with a long room name' }, number: 12, focusHeading: true };
+  try {
+    await page.render(null, { ...options, loading: true });
+    assert.equal(document.activeElement, container.querySelector('#design-title'));
+    assert.match(container.querySelector('#design-title').textContent, /Versions.*Loading design/);
+    assert.ok(container.querySelector('[data-restyle-source]').disabled);
+    const pending = page.render(groupDesigns([version('v1', 'a', 'a')])[0], options);
+    assert.match(container.querySelector('#design-title').textContent, /Original 12: Loading source/);
+    assert.equal(container.querySelector('.back-link').getAttribute('href'), '#/room/kuche');
+    const title = 'A very long original title <with markup> '.repeat(8);
+    finish({ source: { ...source('a'), title } }); await pending;
+    const heading = container.querySelector('#design-title');
+    assert.equal(heading.classList.contains('visually-hidden'), false);
+    assert.equal(heading.querySelector('.design-context-label').textContent, 'Versions');
+    assert.equal(heading.querySelector('.design-context-source').textContent, `Original 12: ${title} · Deleted source, saved snapshot`);
+    assert.equal(document.activeElement, heading);
+    assert.equal(heading.querySelector('with'), null);
+    assert.equal(container.querySelector('.design-create span').textContent, 'Create version');
+    assert.equal(container.querySelector('[data-restyle-source]').disabled, false);
+    await page.render(groupDesigns([version('v2', 'v1', 'a')])[0], options);
+    assert.match(container.querySelector('#design-title').textContent, /Original 12: Original unavailable/);
+    assert.ok(container.querySelector('[data-restyle-source]').disabled);
+    assert.ok(container.querySelector('[data-view-image="v2"]'));
+    await page.render(null, options);
+    assert.match(container.querySelector('#design-title').textContent, /Versions.*Design not found/);
+    assert.equal(document.activeElement, container.querySelector('#design-title'));
+  } finally { page.dispose(); dom.window.close(); }
+});
+
 test('deleted sources use saved source snapshots; missing ancestry never hides surviving versions', async () => {
   const family = groupDesigns([version('v1', 'a', 'a')])[0];
   const recovered = await resolveDesignSource(family, async () => ({ source: source('a') }));

@@ -55,20 +55,26 @@ export function createDesignPage(container, { escape, icon, refreshIcons, getRec
     const token = ++revision;
     const previousFocus = container.contains(document.activeElement) ? document.activeElement.dataset.viewImage : null;
     release(); family = nextFamily; source = null;
-    const roomLink = `<a class="back-link" href="#/room/${room.id}">${icon('arrow-left')} ${escape(room.name)}</a>`;
-    const navigation = `<nav class="design-navigation">${roomLink}</nav>`;
+    const roomLink = `<a class="back-link" href="#/room/${room.id}">${icon('arrow-left')} <span>${escape(room.name)}</span></a>`;
+    const navigation = (context, enabled = false) => `<nav class="design-navigation" aria-label="Design versions">${roomLink}<h1 id="design-title" class="design-context" tabindex="-1"><span class="design-context-label">Versions</span><span class="design-context-source">${escape(context)}</span></h1><button class="button primary design-create" data-restyle-source title="Create a version from the original" aria-label="Create a version from the original" ${enabled ? '' : 'disabled'}>${icon('plus')}<span>Create version</span></button></nav>`;
     if (!family) {
-      container.innerHTML = `${navigation}<div class="design-empty"><h1 id="design-title">${loading ? 'Loading design…' : 'Design not found'}</h1>${loading ? '' : '<p>This source and its versions are no longer in your collection.</p>'}</div>`;
+      container.innerHTML = `${navigation(loading ? 'Loading design…' : 'Design not found')}<div class="design-empty" ${loading ? 'role="status"' : ''}><p>${loading ? 'Loading design…' : 'This source and its versions are no longer in your collection.'}</p></div>`;
+      if (focusHeading) container.querySelector('#design-title').focus({ preventScroll: true });
       refreshIcons(); return;
     }
     // Keep navigation usable while recovering a deleted original from a saved snapshot.
-    if (!family.source) container.innerHTML = `${navigation}<p role="status">Loading source…</p>`;
+    if (!family.source) {
+      container.innerHTML = `${navigation(`Original ${number}: Loading source…`)}<div class="design-empty"><p role="status">Loading source…</p></div>`;
+      refreshIcons();
+      if (focusHeading) container.querySelector('#design-title').focus({ preventScroll: true });
+    }
     let resolvedSource;
     try { resolvedSource = await resolveDesignSource(nextFamily, getRecord); }
     catch { resolvedSource = null; }
     if (token !== revision) return;
+    const restoreHeading = focusHeading && (nextFamily.source || document.activeElement === container.querySelector('#design-title'));
     source = resolvedSource;
-    container.innerHTML = `<nav class="design-navigation">${roomLink}<h1 id="design-title" class="visually-hidden">Original ${number}: ${escape(source?.title || 'Saved design')}</h1><button class="button primary design-create" data-restyle-source title="Create a version from the original" aria-label="Create a version from the original" ${source ? '' : 'disabled'}>${icon('plus')}${icon('sparkles')}</button></nav>
+    container.innerHTML = `${navigation(`Original ${number}: ${source?.title || 'Original unavailable'}${source?.archivedSource ? ' · Deleted source, saved snapshot' : ''}`, Boolean(source))}
       <div class="design-workspace"><section class="design-source" aria-label="Original uploaded image"><h2 class="visually-hidden">Original image</h2>${source ? `<button class="design-source-image" data-source-preview title="${escape(source.archivedSource ? 'Original deleted · Saved snapshot' : 'Original uploaded image')}: ${escape(source.title)}" aria-label="Enlarge original uploaded image"><img src="${imageURL(source.blob)}" alt="${escape(source.title)}" decoding="async"/><span class="image-provenance original-provenance" aria-hidden="true">${icon('image')}</span></button><div class="design-source-actions"><span class="visually-hidden">${source.archivedSource ? 'Source deleted · Saved snapshot' : 'Original uploaded image'}</span>${!source.archivedSource && onDelete ? `<button class="icon-button" data-delete-current-source title="Delete original image" aria-label="Delete original image">${icon('trash-2')}</button>` : onDeleteFamily ? `<button class="icon-button" data-delete-current-family title="Delete retained versions" aria-label="Delete ${family.versions.length} retained ${family.versions.length === 1 ? 'version' : 'versions'}">${icon('trash-2')}</button>` : '<span class="image-index" title="Original deleted · Saved snapshot" aria-label="Original deleted · Saved snapshot">'+icon('triangle-alert')+'</span>'}</div>` : '<div class="design-source-missing">Original unavailable. Saved versions remain accessible.</div>'}</section>
       <div class="design-flow" aria-hidden="true">${icon('chevron-right')}</div>
       <section class="design-versions" aria-labelledby="design-versions-title"><h2 id="design-versions-title" class="visually-hidden">Generated versions (${family.versions.length})</h2>
@@ -83,7 +89,7 @@ export function createDesignPage(container, { escape, icon, refreshIcons, getRec
       }).join('')}
       </div>${family.versions.length ? '' : '<div class="versions-empty"><p>No versions yet.</p></div>'}</section></div>`;
     refreshIcons();
-    if (focusHeading) { const heading = container.querySelector('#design-title'); heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+    if (restoreHeading) container.querySelector('#design-title').focus({ preventScroll: true });
     else if (previousFocus) container.querySelector(`[data-view-image="${previousFocus}"]`)?.focus({ preventScroll: true });
   }
   container.addEventListener('click', (event) => {
