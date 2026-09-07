@@ -21,10 +21,10 @@
 - Keep the server running across turns using the environment's supported background-process mechanism. Record the session's server PID, port, and log location so only that server is stopped later.
 - Verify that the preview responds and give the user its exact browser URL, for example `http://127.0.0.1:5174`. If startup fails, explain the blocker instead of claiming the preview is running.
 
-## Commit and Merge When Finished
+## Finish Only on Request
 
-- By default, completing a requested change includes committing the session's changes and merging into local `main`; do not wait for a separate "done" or "merge" message. This also applies to documentation-only updates to `AGENTS.md`.
-- If the user explicitly asks to keep a feature open for review or not to integrate yet, leave its branch and preview available. In that context, "done" or "merge" authorizes integration. Continue to provide the isolated preview while implementation is in progress.
+- Completing a requested change is not permission to commit or merge. Wait until the user says "done", "merge", or explicitly asks to commit and integrate the session. This also applies to documentation-only updates to `AGENTS.md`.
+- Leave the feature branch and preview available for review while waiting. In this feature-review context, "done" or "merge" authorizes committing the session's changes and merging its branch into local `main`.
 - Before committing, inspect `git status`, `git diff`, and `git log --oneline -10`. Stage only intended session files, check for secrets, and use a concise commit message consistent with the repository. Do not amend commits unless explicitly requested.
 - Before merging, review all session commits and the diff against current `main`, run relevant tests and the build, and report any verification failures. Resolve failures before integrating; ask the user if a blocker requires a decision.
 - For documentation-only changes, review the documentation diff and run `git diff --check`; application tests, builds, and preview servers are not required when no application code or configuration changed.
