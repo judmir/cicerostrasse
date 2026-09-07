@@ -94,7 +94,12 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
     }
     return `<div class="restyle-comparison">${source ? figure(source.blob, 'Current design') : ''}<div class="restyle-inspiration"><p>Inspiration image</p>${inspiration ? `<div class="restyle-preview"><img src="${imageURL(inspiration)}" alt="Inspiration image"/></div><p class="restyle-filename">${escape(inspiration.name)}</p>` : '<div class="restyle-drop" data-drop>Drop or paste one inspiration image here</div>'}
       <label class="button secondary restyle-file-button">${inspiration ? 'Change image' : 'Choose image'}<input type="file" data-inspiration accept="image/jpeg,image/png,image/webp,image/gif,image/avif" ${busy() ? 'disabled' : ''}/></label><p class="restyle-help">Or paste with ⌘V / Ctrl+V. Up to 25 MB.</p></div></div>
-      <p class="restyle-help">${mode === 'mock' ? 'Mock applies a local color adjustment. No AI or API charges.' : 'Transfers style while keeping the layout. Selected images are sent to OpenAI when you press Restyle.'}</p>`;
+      <div class="restyle-instructions">
+        <label for="restyle-style-instruction">Restyling instructions <span>(optional)</span></label>
+        <textarea id="restyle-style-instruction" data-restyle-instruction rows="3" maxlength="2000" aria-describedby="restyle-instruction-help" placeholder="For example: Use the warm wood and soft lighting from the inspiration, but keep the sofa green and make the walls cream.">${escape(instruction)}</textarea>
+        <p id="restyle-instruction-help" class="restyle-help">Tell the AI what to take from the inspiration and what to keep. Layout and furniture shapes stay the same. Up to 2,000 characters.</p>
+      </div>
+      <p class="restyle-help">${mode === 'mock' ? 'Mock applies a local color adjustment only; it does not interpret your instructions. No AI or API charges.' : 'Transfers style while keeping the layout. Selected images and instructions are sent to OpenAI when you press Restyle.'}</p>`;
   }
 
   function modeSelector() {
@@ -180,12 +185,12 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
     try {
       const input = { requestId: crypto.randomUUID(), mode, source: await imagePayload(snapshot.blob) };
       if (refining()) { input.operation = 'refine'; input.instruction = instruction; }
-      else input.inspiration = await imagePayload(inspiration);
+      else { input.inspiration = await imagePayload(inspiration); if (instruction) input.instruction = instruction; }
       operation.signal.throwIfAborted();
       const completed = await client.run(input, { signal: operation.signal, onProgress(value) { stage = value; draw(); } });
       operation.signal.throwIfAborted();
       if (mode === 'mock' && completed.mode !== 'mock') throw new Error('The backend did not return a Mock preview. Restart the local app and try again.');
-      result = { ...completed, operation: completed.operation || (refining() ? 'refine' : 'restyle'), ...(refining() && !completed.instruction ? { instruction } : {}) };
+      result = { ...completed, operation: completed.operation || (refining() ? 'refine' : 'restyle'), ...(instruction && !completed.instruction ? { instruction } : {}) };
       controller = null;
       await save();
     } catch (failure) {
@@ -229,7 +234,7 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
     if (busy()) return;
     if (action === 'next' && selected()) { step = 2; error = ''; draw(); dialog.querySelector('[data-inspiration]')?.focus(); }
     if (action === 'back' && !fixedSource && !refining()) { step = 1; error = ''; draw(); }
-    if (action === 'run') { const editor = dialog.querySelector('[data-refinement-instruction]'); if (editor) instruction = editor.value; run(); }
+    if (action === 'run') { const editor = dialog.querySelector('[data-refinement-instruction], [data-restyle-instruction]'); if (editor) instruction = editor.value; run(); }
     if (action === 'save') save();
     if (action === 'download') download();
     if (action === 'view' && saved) { dialog.close(); onView(saved); }
@@ -240,10 +245,10 @@ export function createRestyleWizard(dialog, { client, escape, readImage, saveVer
     }
   }, events);
   dialog.addEventListener('input', (event) => {
-    if (!event.target.matches('[data-refinement-instruction]')) return;
+    if (!event.target.matches('[data-refinement-instruction], [data-restyle-instruction]')) return;
     instruction = event.target.value;
     const submit = dialog.querySelector('[data-action="run"]');
-    if (submit) submit.disabled = busy() || !selected() || !configured() || instruction.trim().length < 3;
+    if (submit) submit.disabled = busy() || !selected() || !configured() || (refining() ? instruction.trim().length < 3 : !inspiration);
   }, events);
   dialog.addEventListener('change', (event) => { if (event.target.matches('[data-inspiration]')) setInspiration(Array.from(event.target.files)); }, events);
   dialog.addEventListener('dragover', (event) => { event.preventDefault(); event.stopPropagation(); }, events);

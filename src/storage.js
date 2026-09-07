@@ -219,7 +219,7 @@ export async function saveRestyleVersion({ source, inspiration, result, rendered
   };
   const record = {
     requestId: result.requestId, imageId: image.id, mode, source: sourceSnapshot(source),
-    operation, instruction: operation === 'refine' ? result.instruction.trim() : null,
+    operation, instruction: result.instruction?.trim() || null,
     inspiration: operation === 'restyle' ? { blob: inspiration, filename: inspiration.name || 'inspiration' } : null,
     spec: result.spec, geometry: result.geometry, models: result.models, prompt: result.prompt,
     providerIds: result.providerIds, createdAt: result.createdAt || now,

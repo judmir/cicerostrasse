@@ -13,12 +13,14 @@ async function fixture() {
 
 test('version and provenance persist atomically without modifying the source', async () => {
   const data = await fixture();
+  data.result.instruction = 'Keep the sofa green and use warm oak.';
   const image = await saveRestyleVersion(data);
   assert.notEqual(image.id, data.source.id);
   assert.equal(image.parentImageId, data.source.id); assert.equal(image.rootImageId, data.source.id);
   assert.deepEqual(await getImage(data.source.id), data.source);
   assert.equal((await listImages('bad')).length, 0);
   const record = await getRestyleRecord(data.result.requestId);
+  assert.equal(record.instruction, data.result.instruction);
   assert.equal(await record.source.blob.text(), 'original');
   assert.equal(await record.inspiration.blob.text(), 'inspiration');
   const next = await saveRestyleVersion({ ...data, source: image, result: resultFixture(crypto.randomUUID()) });

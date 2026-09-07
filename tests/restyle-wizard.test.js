@@ -58,6 +58,37 @@ test('wizard requires design selection and exactly one image, then saves and com
   } finally { wizard.dispose(); }
 });
 
+test('restyle instructions survive image changes and retries and accompany both images', async () => {
+  const inputs = []; let stored;
+  const wizard = setup({
+    client: { status: async () => ({ configured: true }), run: async (input) => {
+      inputs.push(input);
+      if (inputs.length === 1) throw new Error('Try again.');
+      return resultFixture();
+    } },
+    saveVersion: async (data) => { stored = data; return { ...photo, id: 'new-version' }; },
+  });
+  try {
+    wizard.open([photo], photo.id, { lockSource: true }); await tick();
+    const editor = dialog.querySelector('[data-restyle-instruction]');
+    assert.equal(editor.maxLength, 2000);
+    editor.value = '  Keep the sofa green.\nUse warm oak.  ';
+    editor.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    assert.equal(dialog.querySelector('[data-action="run"]').disabled, true);
+    assert.equal((await paste([], { target: editor })).defaultPrevented, false);
+    await upload();
+    assert.equal(dialog.querySelector('[data-restyle-instruction]').value, editor.value);
+    click('run'); await tick();
+    assert.equal(dialog.querySelector('[data-restyle-instruction]').value, editor.value.trim());
+    click('run'); await tick(); await tick();
+    assert.equal(inputs[1].instruction, editor.value.trim());
+    assert.ok(inputs[1].source.base64); assert.ok(inputs[1].inspiration.base64);
+    assert.equal(stored.result.instruction, editor.value.trim());
+    click('again'); await tick();
+    assert.equal(dialog.querySelector('[data-restyle-instruction]').value, '');
+  } finally { wizard.dispose(); }
+});
+
 test('clipboard paste previews one image and a later paste replaces the submitted inspiration', async () => {
   let submitted; let stored;
   const replacement = new File(['clipboard replacement'], 'clipboard.png', { type: 'image/png' });

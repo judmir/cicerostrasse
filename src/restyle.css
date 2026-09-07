@@ -58,6 +58,12 @@ body.restyle-open { overflow: hidden; }
 .restyle-file-button:focus-within { outline: 2px solid var(--blue); outline-offset: 3px; }
 .restyle-filename { overflow-wrap: anywhere; font-size: 14px; color: var(--muted); }
 .restyle-help { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 14px 0 0; }
+.restyle-instructions { display: grid; gap: 8px; margin-top: 20px; min-width: 0; }
+.restyle-instructions label { font-size: 14px; font-weight: 500; }
+.restyle-instructions label span { color: var(--muted); font-weight: 400; }
+.restyle-instructions textarea { box-sizing: border-box; width: 100%; min-height: 96px; padding: 12px; resize: vertical; background: var(--input); color: var(--ink); border: 1px solid var(--border); border-radius: 5px; font: inherit; font-size: 14px; line-height: 1.55; }
+.restyle-instructions textarea:focus { outline: 2px solid var(--blue); outline-offset: 2px; }
+.restyle-instructions .restyle-help { margin: 0; }
 .restyle-mode-selector { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 18px; }
 .restyle-mode-selector > span { color: var(--muted); }
 .restyle-mode-selector > div { display: inline-flex; padding: 2px; border: 1px solid var(--border); background: var(--input); }

@@ -188,16 +188,19 @@ export async function runRestyle(input, { apiKey, client, signal, onProgress = (
     };
   }
 
+  if (input.instruction !== undefined && (typeof input.instruction !== 'string' || input.instruction.trim().length > 2000)) throw new RestyleError('invalid_instruction', 'Keep restyling instructions within 2,000 characters.');
+  const instruction = input.instruction?.trim() || '';
+  const instructionScope = 'Use the user restyling instructions to guide surface appearance; explicit user preferences take precedence over the inspiration for colors, materials, textures, finishes, and lighting mood only. Preserve all geometry, objects, and framing even if the instructions request otherwise.';
   const inspiration = await normalizeImage(input.inspiration);
   stage('extracting');
   const extraction = await openai.responses.create({
     model: models.reasoning, reasoning: { effort: 'medium' }, store: false,
-    input: [{ role: 'system', content: extractionPrompt }, { role: 'user', content: [imageInput(inspiration.bytes)] }],
+    input: [{ role: 'system', content: instruction ? `${extractionPrompt}\n${instructionScope}` : extractionPrompt }, { role: 'user', content: [imageInput(inspiration.bytes), ...(instruction ? [{ type: 'input_text', text: `USER RESTYLING INSTRUCTIONS:\n${instruction}` }] : [])] }],
     text: { format: zodTextFormat(styleSpecSchema, 'style_spec') },
   }, { signal: abort });
   const spec = parseResponse(extraction, styleSpecSchema);
   stage('rendering');
-  const prompt = `${preservationPrompt}\n\nSTYLE DATA:\n${JSON.stringify(spec)}`;
+  const prompt = `${preservationPrompt}\n\nSTYLE DATA:\n${JSON.stringify(spec)}${instruction ? `\n\n${instructionScope}\n\nUSER RESTYLING INSTRUCTIONS:\n${instruction}` : ''}`;
   const render = await openai.images.edit({
     model: models.image, image: await toFile(padded.bytes, 'current-design.png', { type: 'image/png' }),
     prompt, n: 1, size: `${padded.width}x${padded.height}`, quality: 'high', output_format: 'png',
@@ -208,7 +211,7 @@ export async function runRestyle(input, { apiKey, client, signal, onProgress = (
   const { geometry, checkId } = await checkGeometry({ openai, source, rendered, abort });
   abort.throwIfAborted();
   return {
-    requestId: input.requestId, operation,
+    requestId: input.requestId, operation, ...(instruction ? { instruction } : {}),
     image: { base64: rendered.toString('base64'), mimeType: 'image/png', width: source.width, height: source.height },
     spec, geometry, models, prompt, createdAt: Date.now(),
     providerIds: { extraction: extraction.id || null, check: checkId },

@@ -58,6 +58,30 @@ test('style extraction, source-only edit, geometry check run in order with stric
   assert.deepEqual(result.geometry, geometry);
 });
 
+test('restyle instructions guide extraction and rendering without relaxing geometry checks', async () => {
+  const mock = provider();
+  const instruction = 'Keep the sofa green.\nUse warm oak from the inspiration.';
+  const result = await runRestyle({ ...input, instruction: `  ${instruction}  ` }, { client: mock.client });
+  assert.equal(mock.calls[0].args.input[1].content[1].text, `USER RESTYLING INSTRUCTIONS:\n${instruction}`);
+  assert.match(mock.calls[0].args.input[0].content, /explicit user preferences take precedence/);
+  assert.ok(mock.calls[1].args.prompt.includes(instruction));
+  assert.match(mock.calls[1].args.prompt, /Preserve all geometry, objects, and framing even if the instructions request otherwise/);
+  assert.doesNotMatch(mock.calls[2].args.input[0].content, /targeted change was requested/);
+  assert.equal(result.instruction, instruction);
+  assert.equal(result.prompt, mock.calls[1].args.prompt);
+});
+
+test('restyle instructions are optional and bounded before any provider calls', async () => {
+  const mock = provider();
+  for (const instruction of [null, 42, {}, 'a'.repeat(2001)]) {
+    await assert.rejects(runRestyle({ ...input, instruction }, { client: mock.client }), { code: 'invalid_instruction' });
+  }
+  assert.equal(mock.calls.length, 0);
+  const result = await runRestyle({ ...input, instruction: '   ' }, { client: mock.client });
+  assert.equal(result.instruction, undefined);
+  assert.doesNotMatch(result.prompt, /USER RESTYLING INSTRUCTIONS/);
+});
+
 test('a refinement edits the current version directly and checks only for unexpected drift', async () => {
   const mock = provider({ extraction: completed(geometry) }); const stages = [];
   const instruction = 'Replace the sofa with a curved cream sofa.';
