@@ -157,6 +157,13 @@ test('generation placeholder follows real stages continuously through saving, th
     const placeholder = dialog.querySelector('.restyle-generation-placeholder');
     const progress = dialog.querySelector('.restyle-progress');
     assert.ok(placeholder);
+    const merge = placeholder.querySelector('.restyle-merge');
+    assert.ok(merge);
+    assert.equal(placeholder.getAttribute('aria-hidden'), 'true');
+    const sourceURL = merge.querySelector('.restyle-merge-source img').src;
+    const inspirationURL = merge.querySelector('.restyle-merge-inspiration img').src;
+    assert.notEqual(sourceURL, inspirationURL);
+    assert.deepEqual([...merge.querySelectorAll('.restyle-merge-blend img')].map((img) => img.src), [sourceURL, inspirationURL]);
     assert.ok(placeholder.compareDocumentPosition(progress) & dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
     assert.deepEqual([...progress.querySelectorAll('.restyle-step-label')].map((item) => item.textContent), ['Extracting style', 'Rendering', 'Checking geometry', 'Saving']);
     assert.deepEqual(states(), ['active', 'pending', 'pending', 'pending']);
@@ -168,6 +175,7 @@ test('generation placeholder follows real stages continuously through saving, th
     advance('checking');
     assert.deepEqual(states(), ['complete', 'complete', 'active', 'pending']);
     assert.equal(dialog.querySelector('.restyle-generation-placeholder'), placeholder);
+    assert.equal(dialog.querySelector('.restyle-merge'), merge);
     assert.equal(progress.querySelectorAll('[aria-current="step"]').length, 1);
     finishRender(resultFixture()); await tick();
     assert.deepEqual(states(), ['complete', 'complete', 'complete', 'active']);

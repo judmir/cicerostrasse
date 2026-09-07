@@ -205,6 +205,35 @@ dialog::backdrop, .restyle-dialog::backdrop { background: #080809a6; backdrop-fi
 .restyle-generation-inputs > span { padding: 0; border: 0; background: transparent; color: var(--ink); border-radius: 0; }
 .restyle-generation-inputs img { width: 48px; height: 48px; margin-right: 5px; }
 .restyle-generation-inputs b { margin: 0 10px; color: var(--muted); }
+.restyle-generation-placeholder:has(.restyle-merge) { height: 210px; }
+.restyle-merge { --merge-offset: 96px; --merge-angle: -7deg; position: absolute; inset: 0; display: grid; place-items: center; }
+.restyle-merge-input { position: absolute; width: 112px; text-align: center; transform: translateX(calc(-1 * var(--merge-offset))) rotate(var(--merge-angle)); animation: restyle-merge-input 2.4s ease-in-out forwards; }
+.restyle-merge-input img { display: block; width: 112px; height: 112px; object-fit: cover; border: 1px solid #ffffff26; border-radius: 6px; box-shadow: 0 8px 20px #0003; }
+.restyle-merge-input > span { display: block; margin-top: 12px; font-size: 12px; color: var(--muted); animation: restyle-merge-label 2.4s ease-in-out forwards; }
+.restyle-merge-inspiration { --merge-offset: -96px; --merge-angle: 7deg; }
+.restyle-merge-plus { margin-top: -26px; font-size: 20px; color: var(--muted); animation: restyle-merge-label 2.4s ease-in-out forwards; }
+.restyle-merge-blend { position: absolute; width: 138px; height: 138px; top: 26px; overflow: hidden; border: 1px solid #b6bdcb88; border-radius: 6px; opacity: 0; transform: scale(.8); animation: restyle-merge-result 2.4s ease-in-out forwards; box-shadow: 0 8px 24px #0004; }
+.restyle-merge-blend img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.restyle-merge-overlay { opacity: .65; animation: restyle-merge-wipe 2.6s ease-in-out 2.4s infinite alternate both; }
+.restyle-merge-scan { position: absolute; inset: 0 auto 0 0; width: 2px; background: #e4e8f0; box-shadow: 0 0 16px 4px #ccd7ed55; animation: restyle-merge-scan 2.6s ease-in-out 2.4s infinite alternate both; }
+@keyframes restyle-merge-input {
+  0%, 28% { transform: translateX(calc(-1 * var(--merge-offset))) rotate(var(--merge-angle)); opacity: 1; }
+  78% { transform: translateX(0) rotate(0); opacity: .85; }
+  100% { transform: translateX(0) scale(.9); opacity: 0; }
+}
+@keyframes restyle-merge-label { 0%, 28% { opacity: 1; } 60%, 100% { opacity: 0; } }
+@keyframes restyle-merge-result {
+  0%, 60% { opacity: 0; transform: scale(.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes restyle-merge-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes restyle-merge-scan { from { left: 0; } to { left: calc(100% - 2px); } }
+@media (max-width: 420px) {
+  .restyle-merge { --merge-offset: 76px; }
+  .restyle-merge-inspiration { --merge-offset: -76px; }
+  .restyle-merge-input, .restyle-merge-input img { width: 92px; }
+  .restyle-merge-input img { height: 104px; }
+}
 .restyle-progress { gap: 0; }
 .restyle-progress li { border: 0; border-radius: 4px; font-size: 13px; padding: 9px 10px; }
 .restyle-progress [data-state=active] { background: #323238; color: var(--ink); }
