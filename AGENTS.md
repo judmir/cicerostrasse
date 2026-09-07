@@ -20,6 +20,7 @@
 
 ## Isolate Only on Request
 
+- Treat a task prefixed with `work tree` (case-insensitive), such as `work tree: redesign the room pages`, as an explicit request to use an isolated worktree for that task. No additional confirmation of isolation is needed; the safety checks below still apply. Without this prefix or another explicit worktree request, work directly on `main`.
 - Only when the user explicitly requests a worktree, create a dedicated Git worktree and a uniquely named branch before editing application files. In this mode, never develop in the shared checkout or reuse another session's branch. A discussion of worktrees alone is not a request to create one.
 - Inspect `git status`, `git worktree list`, and existing branches first. Preserve all existing changes, worktrees, and running servers belonging to the user or other sessions.
 - Default to branching from local `main`. If the task needs unmerged work from another branch, confirm the intended base with the user rather than silently including it.
