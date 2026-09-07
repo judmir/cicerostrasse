@@ -35,3 +35,22 @@ test('every room keeps its measured proportions inside the diagram bounds', () =
   }
   assert.throws(() => getRoomPlanMetrics('missing'), /Unknown room/);
 });
+
+test('editor shares all architectural geometry and dimensions without duplicate sidebar IDs', () => {
+  for (const room of rooms) {
+    const sidebar = renderRoomPlan(room);
+    const editor = renderRoomPlan(room, { editor: true });
+    const architecture = html => [...html.matchAll(/<(?:line|path|rect|text)\b[^>]*>/g)]
+      .map(m => m[0]).filter(tag => /class="room-(?:diagram-(?:floor|wall|gap|door|swing|window)|dimension-[^"]+)"/.test(tag));
+    assert.deepEqual(architecture(editor), architecture(sidebar));
+    assert.match(sidebar, /viewBox="0 0 280 370"/);
+    assert.doesNotMatch(editor, /viewBox="0 0 280 370"/);
+    assert.match(editor, /preserveAspectRatio="xMidYMid meet"/);
+    for (const value of [roomMeasurements[room.id].width, roomMeasurements[room.id].depth]) assert.ok(editor.includes(`${value.toFixed(2)} m`));
+    assert.match(editor, new RegExp(`scale\\(${getRoomPlanMetrics(room.id).scale}\\)`));
+    assert.match(editor, /data-placements/);
+    assert.doesNotMatch(editor, /room-diagram-fixture|room-diagram-name|figcaption|room-measurements/);
+    const sidebarIds = [...sidebar.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);
+    assert.ok([...editor.matchAll(/\bid="([^"]+)"/g)].every(m => !sidebarIds.includes(m[1])));
+  }
+});

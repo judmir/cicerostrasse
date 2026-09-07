@@ -37,6 +37,9 @@ function splitRecordFiles(collection, record) {
     if (data.source) take(data.source, 'blob', 'source_blob');
     if (data.inspiration) take(data.inspiration, 'blob', 'inspiration_blob');
   }
+  if (collection === 'firstDesignDrafts') {
+    take(data, 'layoutReferenceBlob', 'layout_reference');
+  }
   if (collection === 'firstDesigns') {
     data.source = data.source ? { ...data.source } : data.source;
     data.sourceSnapshots = (data.sourceSnapshots || []).map(snapshot => ({ ...snapshot }));
@@ -60,6 +63,8 @@ async function hydrateRecord(row) {
   if (row.collection === 'images' || row.collection === 'inspirations') {
     record.blob = files.blob;
     record.thumbnail = files.thumbnail;
+  } else if (row.collection === 'firstDesignDrafts') {
+    record.layoutReferenceBlob = files.layout_reference || null;
   } else if (row.collection === 'restyles') {
     if (record.source) record.source = { ...record.source, blob: files.source_blob };
     if (record.inspiration) record.inspiration = { ...record.inspiration, blob: files.inspiration_blob };
@@ -88,8 +93,9 @@ export async function cloudPutRecord(collection, record, { onlyIfNewer = false }
   const { data, blobs, removed } = splitRecordFiles(collection, record);
   const files = { ...(existing?.files || {}) };
   const safeId = String(recordId).replace(/[^a-zA-Z0-9._-]/g, '_');
+  const isDraft = collection === 'firstDesignDrafts';
   for (const [slot, blob] of blobs) {
-    const path = `${userId}/${collection}/${safeId}/${slot}.${extensionFor(blob.type)}`;
+    const path = `${userId}/${collection}/${safeId}/${slot}${isDraft ? `-${crypto.randomUUID()}` : ''}.${extensionFor(blob.type)}`;
     const { error } = await getSupabaseClient().storage.from(BUCKET).upload(path, blob, {
       contentType: blob.type || 'application/octet-stream', upsert: true,
     });
@@ -97,7 +103,7 @@ export async function cloudPutRecord(collection, record, { onlyIfNewer = false }
     files[slot] = { path, type: blob.type || 'application/octet-stream' };
   }
   for (const slot of removed) {
-    if (files[slot]?.path) await getSupabaseClient().storage.from(BUCKET).remove([files[slot].path]);
+    if (!isDraft && files[slot]?.path) await getSupabaseClient().storage.from(BUCKET).remove([files[slot].path]);
     delete files[slot];
   }
   const row = {
@@ -106,7 +112,18 @@ export async function cloudPutRecord(collection, record, { onlyIfNewer = false }
     updated_at: Number(record.updatedAt || record.createdAt || Date.now()),
   };
   const { error } = await getSupabaseClient().from('journal_records').upsert(row, { onConflict: 'user_id,collection,record_id' });
-  if (error) throw error;
+  if (error) {
+    if (isDraft) {
+      const uploaded = [...blobs.keys()].map(slot => files[slot].path);
+      if (uploaded.length) await getSupabaseClient().storage.from(BUCKET).remove(uploaded).catch(() => {});
+    }
+    throw error;
+  }
+  // Draft replacement must not destroy the last saved reference before metadata commits.
+  if (isDraft) {
+    const obsolete = Object.entries(existing?.files || {}).filter(([slot, file]) => file.path !== files[slot]?.path).map(([, file]) => file.path);
+    if (obsolete.length) await getSupabaseClient().storage.from(BUCKET).remove(obsolete).catch(() => {});
+  }
 }
 
 export async function cloudListRecords(collection, roomId) {

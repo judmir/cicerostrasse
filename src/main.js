@@ -6,6 +6,8 @@ import { createPhotoViewer } from './photo-viewer.js';
 import { initializeStorage, listRoomNames, saveRoomName, listImages, addImage, updateImage, deleteImage, deleteDesignFamily, validateImageFile, getRestyleRecord, saveRestyleVersion } from './storage.js';
 import { createRestyleClient } from './restyle-client.js';
 import { createRestyleWizard } from './restyle-wizard.js';
+import { createRoomLayoutWizard } from './room-layout-wizard.js';
+import { getFirstDesignDraft, saveFirstDesignDraft, saveFirstDesign } from './storage.js';
 import { createSourceDeleteDialog } from './source-delete-dialog.js';
 import { createDesignPage, groupDesigns, renderSourceCards, parseGalleryRoute, designPath, designRoot } from './design-gallery.js';
 import './style.css';
@@ -54,7 +56,7 @@ $('#app').innerHTML = `
       </div>
     </section>
     <section id="room-page" class="room-page" hidden aria-labelledby="room-title">
-      <div class="room-heading"><div class="room-heading-title"><h1 id="room-title"></h1><button id="rename-room" class="icon-button" disabled aria-label="Rename room" title="Rename room">${icon('pencil')}</button><span id="room-meta"></span></div><div class="room-heading-actions"><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
+      <div class="room-heading"><div class="room-heading-title"><h1 id="room-title"></h1><button id="rename-room" class="icon-button" disabled aria-label="Rename room" title="Rename room">${icon('pencil')}</button><span id="room-meta"></span></div><div class="room-heading-actions"><button id="style-room" class="button secondary">${icon('sparkles')} Style with AI</button><button class="button primary add-images">${icon('plus')} Add images</button></div></div>
       <div id="room-name-editor" class="room-name-editor" hidden></div>
       <nav class="room-collections" aria-label="Room collections"><a id="sources-link">Sources</a><a id="inspiration-link">Design inspiration</a></nav>
       <div class="room-layout">
@@ -74,10 +76,18 @@ $('#app').innerHTML = `
   <input id="image-upload" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple hidden />
   <dialog id="image-dialog" class="album-viewer" aria-labelledby="image-dialog-title"></dialog>
   <dialog id="restyle-dialog" class="restyle-dialog" aria-labelledby="restyle-title"></dialog>
+  <dialog id="room-layout-dialog"></dialog>
   <dialog id="source-delete-dialog" class="source-delete-dialog" aria-labelledby="source-delete-title" aria-describedby="source-delete-description"></dialog>
   <div id="drop-overlay" hidden>${icon('upload')}<span>Drop images to add them to <strong id="drop-room"></strong></span></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 `;
+
+const roomLayoutWizard = createRoomLayoutWizard($('#room-layout-dialog'), {
+  escape, getDraft: getFirstDesignDraft, saveDraft: saveFirstDesignDraft, listImages, readImage,
+  client: createRestyleClient(), saveDesign: saveFirstDesign,
+  onSaved: async () => { await refreshData(); toast('First design saved'); },
+  onOpen: async image => { await refreshData(); location.hash = designPath(image.roomId, image.id); },
+});
 
 function toast(message, error = false) {
   clearTimeout(toastTimer);
@@ -348,6 +358,7 @@ document.addEventListener('click', (event) => {
   }
   if (event.target.closest('.add-images') && currentRoom && !uploading) { uploadTarget = currentRoom; $('#image-upload').click(); }
   if (event.target.closest('#rename-room')) roomNameEditor.open();
+  if (event.target.closest('#style-room') && currentRoom) roomLayoutWizard.open(roomById(currentRoom)).catch(handleError);
 }, events);
 $('#image-upload').addEventListener('change', (event) => { uploadFiles(Array.from(event.target.files), uploadTarget); event.target.value = ''; });
 let dragDepth = 0;
@@ -417,6 +428,7 @@ if (import.meta.hot) {
     clearGalleryURLs();
     photoViewer?.dispose();
     restyleWizard?.dispose();
+    roomLayoutWizard.dispose();
     designPage?.dispose();
     sourceDeleteDialog?.dispose();
     inspirationGallery?.dispose();

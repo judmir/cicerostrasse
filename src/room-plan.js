@@ -20,7 +20,7 @@ export function getRoomPlanMetrics(roomId) {
   return { ...measurements, scale, drawWidth: measurements.width * scale, drawDepth: measurements.depth * scale };
 }
 
-export function renderRoomPlan(room) {
+export function renderRoomPlan(room, { editor = false } = {}) {
   const m = getRoomPlanMetrics(room.id);
   const w = m.drawWidth;
   const h = m.drawDepth;
@@ -74,21 +74,25 @@ export function renderRoomPlan(room) {
     details += line(left, top + h * .4, left, bottom - 8, 'room-diagram-gap');
     details += line(right, top + h * .4, right, bottom - 8, 'room-diagram-gap');
   }
-  if (m.fixtures === 'kitchen') {
+  if (!editor && m.fixtures === 'kitchen') {
     // Planned parallel runs, with the window end and entry kept clear.
     details += rect(left + w * .06, top + h * .22, w * .22, h * .65);
     details += rect(right - w * .28, top + h * .22, w * .22, h * .65);
     for (const cx of [.79, .88]) for (const cy of [.595, .63]) details += `<circle cx="${n(left + w * cx)}" cy="${n(top + h * cy)}" r="${n(w * .025)}" class="room-diagram-fixture"/>`;
   }
-  if (m.fixtures === 'bath') {
+  if (!editor && m.fixtures === 'bath') {
     details += rect(left + w * .07, top + h * .32, w * .32, h * .40, 'room-diagram-fixture', 7);
     details += rect(left + w * .09, top + h * .16, w * .22, h * .10, 'room-diagram-fixture', 5);
     details += rect(left + w * .08, top + h * .78, w * .27, h * .09, 'room-diagram-fixture', 5);
   }
   if (m.balcony) details += line(left + 5, bottom - 6, right - 5, bottom - 6, 'room-diagram-window');
 
-  return `<figure class="room-diagram"><svg viewBox="0 0 280 370" role="img" aria-labelledby="room-svg-title room-svg-desc">
-    <title id="room-svg-title">${escapeRoomName(room.name)} floor plan</title><desc id="room-svg-desc">${dimension(m.width)} wide by ${dimension(m.depth)} deep. Area on the supplied plan: ${m.area.toFixed(1)} square meters. Openings and fittings are schematic.</desc>
+  const id = editor ? 'room-editor-svg' : 'room-svg';
+  // Inward door swings fit the floor bounds; allow for dimension text and strokes.
+  // Only crop the editor viewport, leaving meter-to-SVG placement coordinates intact.
+  const viewBox = editor ? [left - 8, top - 55, w + 59, h + 63].map(n).join(' ') : '0 0 280 370';
+  const svg = `<svg ${editor ? 'data-plan aria-describedby="rl-plan-help"' : ''} viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet" role="${editor ? 'group' : 'img'}" aria-labelledby="${id}-title ${id}-desc">
+    <title id="${id}-title">${escapeRoomName(room.name)} floor plan</title><desc id="${id}-desc">${dimension(m.width)} wide by ${dimension(m.depth)} deep. Area on the supplied plan: ${m.area.toFixed(1)} square meters. Openings and fittings are schematic.</desc>
     <rect x="${n(left)}" y="${n(top)}" width="${n(w)}" height="${n(h)}" class="room-diagram-floor"/>
     ${line(left, top, right, top)}${line(right, top, right, bottom)}${line(right, bottom, left, bottom)}${line(left, bottom, left, top)}
     ${details}
@@ -98,8 +102,10 @@ export function renderRoomPlan(room) {
     ${line(right + 12, top, right + 33, top, 'room-dimension-guide')}${line(right + 12, bottom, right + 33, bottom, 'room-dimension-guide')}
     ${line(right + 26, top, right + 26, bottom, 'room-dimension-line')}${line(right + 23, top + 3, right + 29, top - 3, 'room-dimension-line')}${line(right + 23, bottom + 3, right + 29, bottom - 3, 'room-dimension-line')}
     <text transform="translate(${n(right + 43)} ${n((top + bottom) / 2)}) rotate(-90)" text-anchor="middle" class="room-dimension-text">${dimension(m.depth)}</text>
-    <text x="${n(left + w * .58)}" y="${n(top + h * .47)}" text-anchor="middle" class="room-diagram-name">${escapeRoomName(Array.from(room.name).slice(0, 16).join('') + (Array.from(room.name).length > 16 ? '…' : ''))}</text>
-  </svg><figcaption>2D room plan</figcaption></figure>
+    ${editor ? `<g data-placements transform="translate(${left} ${top}) scale(${m.scale})"></g>` : `<text x="${n(left + w * .58)}" y="${n(top + h * .47)}" text-anchor="middle" class="room-diagram-name">${escapeRoomName(Array.from(room.name).slice(0, 16).join('') + (Array.from(room.name).length > 16 ? '…' : ''))}</text>`}
+  </svg>`;
+  if (editor) return `<figure class="room-diagram rl-plan">${svg}</figure>`;
+  return `<figure class="room-diagram">${svg}<figcaption>2D room plan</figcaption></figure>
   <dl class="room-measurements"><div><dt>Dimensions</dt><dd>${m.width.toFixed(2)} × ${m.depth.toFixed(2)} m</dd></div><div><dt>Area on plan</dt><dd>${m.area.toFixed(1)} m²</dd></div></dl>
   <p class="measurement-source">${m.sourceName !== room.name ? `${m.sourceName} in the supplied drawing. ` : ''}Dimensions from the plan; openings and fittings are schematic.${m.note ? ` ${m.note}` : ''}</p>`;
 }
