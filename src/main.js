@@ -280,6 +280,12 @@ sourceDeleteDialog = createSourceDeleteDialog($('#source-delete-dialog'), {
     if (currentRoot === rootId) location.hash = `/room/${currentRoom}`;
     toast('Saved versions deleted');
   },
+  removeVersion: async (id) => {
+    await deleteImage(id);
+    await refreshData();
+    if (currentRoot && !groupDesigns(images, currentRoom).some((family) => family.rootId === currentRoot)) location.hash = `/room/${currentRoom}`;
+    toast('Version deleted');
+  },
   restoreFocus: () => {
     const target = currentRoot ? $('#design-title') : $('.room-heading .add-images');
     if (target) { if (currentRoot) target.tabIndex = -1; target.focus({ preventScroll: true }); }
@@ -293,6 +299,7 @@ designPage = createDesignPage($('#design-page'), {
   onRefine: (version) => restyleWizard.open([version], version.id, { lockSource: true, flow: 'refine' }),
   onDelete: (source, versionCount) => sourceDeleteDialog.open(source, versionCount),
   onDeleteFamily: (family) => sourceDeleteDialog.openFamily(family),
+  onDeleteVersion: (version) => sourceDeleteDialog.openVersion(version),
 });
 
 restyleWizard = createRestyleWizard($('#restyle-dialog'), {

@@ -45,7 +45,7 @@ export function renderSourceCards(families, { roomId, escape, imageURL, icon }) 
   }).join('')}</div>`;
 }
 
-export function createDesignPage(container, { escape, icon, refreshIcons, getRecord, onView, onRestyle, onRefine, onDelete, onDeleteFamily }) {
+export function createDesignPage(container, { escape, icon, refreshIcons, getRecord, onView, onRestyle, onRefine, onDelete, onDeleteFamily, onDeleteVersion }) {
   let source, family, urls = [], revision = 0;
   const lifecycle = new AbortController();
   const release = () => { urls.forEach((url) => URL.revokeObjectURL(url)); urls = []; };
@@ -79,7 +79,7 @@ export function createDesignPage(container, { escape, icon, refreshIcons, getRec
         const description = `${versionOrigin(version)} · Version ${index + 1} · ${ancestry}${review ? ' · Review needed' : ''}. ${version.title}${version.restyleInstruction ? `. ${version.restyleInstruction}` : ''}`;
         return `<div class="design-version-node"><button class="design-version-card" data-view-image="${escape(version.id)}" title="${escape(description)}" aria-label="Open version ${index + 1}: ${escape(description)}">
         <div class="design-version-preview"><img src="${imageURL(version.thumbnail || version.blob)}" alt="${escape(version.title)}" loading="lazy" decoding="async"/><span class="image-provenance" data-origin="${version.mode === 'mock' ? 'mock' : 'ai'}" aria-hidden="true">${icon(version.mode === 'mock' ? 'flask-conical' : 'sparkles')}</span>${review ? `<span class="design-review-indicator" aria-hidden="true">${icon('triangle-alert')}</span>` : ''}</div>
-        <div class="design-version-caption" aria-hidden="true"><span>${String(index + 1).padStart(2, '0')}</span>${parentIndex >= 0 ? `<span class="version-parent">${icon('arrow-up-right')}${String(parentIndex + 1).padStart(2, '0')}</span>` : ''}</div></button>${onRefine ? `<button class="design-refine-button" data-refine-version="${escape(version.id)}" title="Refine version ${index + 1}" aria-label="Refine version ${index + 1}">${icon('pencil')}</button>` : ''}</div>`;
+        <div class="design-version-caption" aria-hidden="true"><span>${String(index + 1).padStart(2, '0')}</span>${parentIndex >= 0 ? `<span class="version-parent">${icon('arrow-up-right')}${String(parentIndex + 1).padStart(2, '0')}</span>` : ''}</div></button><div class="design-version-actions">${onRefine ? `<button class="design-refine-button" data-refine-version="${escape(version.id)}" title="Refine version ${index + 1}" aria-label="Refine version ${index + 1}">${icon('pencil')}</button>` : ''}${onDeleteVersion ? `<button class="design-refine-button design-delete-button" data-delete-version="${escape(version.id)}" title="Delete version ${index + 1}" aria-label="Delete version ${index + 1}">${icon('trash-2')}</button>` : ''}</div></div>`;
       }).join('')}
       </div>${family.versions.length ? '' : '<div class="versions-empty"><p>No versions yet.</p></div>'}</section></div>`;
     refreshIcons();
@@ -93,6 +93,9 @@ export function createDesignPage(container, { escape, icon, refreshIcons, getRec
     const refineId = event.target.closest('[data-refine-version]')?.dataset.refineVersion;
     const refinement = family?.versions.find((item) => item.id === refineId);
     if (refinement) onRefine?.(refinement);
+    const deleteId = event.target.closest('[data-delete-version]')?.dataset.deleteVersion;
+    const deletion = family?.versions.find((item) => item.id === deleteId);
+    if (deletion) onDeleteVersion?.(deletion);
     if (event.target.closest('[data-source-preview]') && source) onView(source, [source, ...family.versions]);
     const id = event.target.closest('[data-view-image]')?.dataset.viewImage;
     const image = family?.versions.find((item) => item.id === id);

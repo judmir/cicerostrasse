@@ -89,11 +89,12 @@ test('source page keeps source before versions, puts Restyle in the toolbar, and
   globalThis.AbortController = dom.window.AbortController;
   const container = document.querySelector('#page');
   const a = source('a'); const v1 = version('v1', 'a', 'a'); const v2 = { ...version('v2', 'v1', 'a', 3), geometryStatus: 'uncertain' };
-  let selectedSource, selectedImage, album, deletion, refined;
+  let selectedSource, selectedImage, album, deletion, refined, deletedVersion;
   const page = createDesignPage(container, { escape, icon, refreshIcons: () => {}, getRecord: async () => null,
     onRestyle: (image) => { selectedSource = image; }, onView: (image, family) => { selectedImage = image; album = family; },
     onRefine: (image) => { refined = image; },
     onDelete: (image, count) => { deletion = { image, count }; },
+    onDeleteVersion: (image) => { deletedVersion = image; },
   });
   try {
     const family = groupDesigns([a, v2, v1])[0];
@@ -105,6 +106,14 @@ test('source page keeps source before versions, puts Restyle in the toolbar, and
     assert.equal(container.querySelectorAll('.design-review-indicator').length, 1);
     assert.match(container.querySelector('[data-view-image="v2"]').getAttribute('aria-label'), /From version 1 · Review needed/);
     assert.equal(container.querySelector('[data-refine-version="v2"]').getAttribute('title'), 'Refine version 2');
+    const deleteButton = container.querySelector('[data-delete-version="v2"]');
+    assert.equal(container.querySelectorAll('[data-delete-version]').length, 2);
+    assert.equal(deleteButton.getAttribute('aria-label'), 'Delete version 2');
+    assert.equal(deleteButton.parentElement.closest('button'), null);
+    deleteButton.click();
+    assert.equal(deletedVersion, v2);
+    assert.equal(selectedImage, undefined);
+    assert.equal(refined, undefined);
     container.querySelector('[data-delete-current-source]').click();
     assert.equal(deletion.image.id, 'a'); assert.equal(deletion.count, 2);
     container.querySelector('[data-restyle-source]').click(); assert.equal(selectedSource.id, 'a');
@@ -113,6 +122,7 @@ test('source page keeps source before versions, puts Restyle in the toolbar, and
     await page.render(groupDesigns([a])[0], { room: { id: 'kuche', name: 'Küche' }, number: 1 });
     assert.equal(container.querySelectorAll('[data-restyle-source]').length, 1);
     assert.match(container.textContent, /No versions yet/);
+    assert.equal(container.querySelector('[data-delete-version]'), null);
     page.hide(); assert.equal(container.innerHTML, '');
   } finally { page.dispose(); dom.window.close(); }
 });

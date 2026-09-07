@@ -9,14 +9,14 @@ import { resultFixture } from './restyle-fixtures.js';
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 const image = { id: 'source-a', title: 'Kitchen <layout>', blob: new Blob(['source'], { type: 'image/png' }) };
 const escape = (text) => String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
-function setup(removeSource, removeFamily = () => assert.fail('Must not delete a family')) {
+function setup(removeSource, removeFamily = () => assert.fail('Must not delete a family'), removeVersion = () => assert.fail('Must not delete a version')) {
   const dom = new JSDOM('<button id="opener">Delete source</button><dialog></dialog>');
   globalThis.document = dom.window.document; globalThis.AbortController = dom.window.AbortController;
   const dialog = document.querySelector('dialog');
   dialog.showModal = () => { dialog.open = true; };
   dialog.close = () => { dialog.open = false; dialog.dispatchEvent(new dom.window.Event('close')); };
   const opener = document.querySelector('#opener'); opener.focus();
-  const controller = createSourceDeleteDialog(dialog, { escape, removeSource, removeFamily });
+  const controller = createSourceDeleteDialog(dialog, { escape, removeSource, removeFamily, removeVersion });
   return { dom, dialog, controller, opener, cleanup() { controller.dispose(); dom.window.close(); } };
 }
 
@@ -34,6 +34,30 @@ test('deletion requires confirmation; Keep source and Escape leave the image alo
     dialog.dispatchEvent(cancel); assert.equal(cancel.defaultPrevented, false);
     dialog.close(); // Native Escape closes the dialog when cancel is not prevented.
     controller.open({ ...image, archivedSource: true }); assert.equal(dialog.open, false);
+  } finally { cleanup(); }
+});
+
+test('individual version deletion supports cancellation, retry, and explicit confirmation', async () => {
+  let calls = 0;
+  const { dialog, controller, opener, cleanup } = setup(() => assert.fail('Must not delete source'), undefined, async (id) => {
+    assert.equal(id, image.id);
+    if (++calls === 1) throw new Error('Storage unavailable');
+  });
+  try {
+    controller.openVersion(image);
+    assert.equal(document.activeElement.textContent, 'Keep version');
+    assert.match(dialog.textContent, /original image and other versions will not be deleted/);
+    dialog.querySelector('[data-keep-source]').click();
+    assert.equal(calls, 0);
+    assert.equal(document.activeElement, opener);
+    controller.openVersion(image);
+    dialog.querySelector('[data-confirm-delete]').click(); await tick();
+    assert.equal(dialog.open, true);
+    assert.match(dialog.querySelector('[role="alert"]').textContent, /Could not delete this version/);
+    assert.equal(dialog.querySelector('[data-confirm-delete]').textContent, 'Delete version');
+    dialog.querySelector('[data-confirm-delete]').click(); await tick();
+    assert.equal(calls, 2);
+    assert.equal(dialog.open, false);
   } finally { cleanup(); }
 });
 

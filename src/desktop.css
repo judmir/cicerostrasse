@@ -123,13 +123,15 @@ h1, .room-heading h1 { font-size: 15px; line-height: 1.4; font-weight: 600; lett
 .design-version-node { display: block; position: relative; }
 .design-version-card { background: transparent; border: 0; border-radius: 0; overflow: visible; }
 .design-version-preview { border: 1px solid var(--subtle-border); border-radius: 5px; overflow: hidden; background: #151518; }
-.design-version-caption { min-height: 38px; display: flex; align-items: center; gap: 14px; padding: 8px 36px 0 0; font-variant-numeric: tabular-nums; }
+.design-version-caption { min-height: 38px; display: flex; align-items: center; gap: 14px; padding: 8px 68px 0 0; font-variant-numeric: tabular-nums; }
 .version-parent { display: inline-flex; align-items: center; gap: 4px; }
 .version-parent svg { width: 13px; height: 13px; }
 .design-version-caption h3 { font-size: 13px; margin: 3px 0 0; }
 .design-version-caption p { font-size: 12px; margin-top: 5px; }
-.design-refine-button { position: absolute; bottom: 0; right: 0; width: 30px; min-height: 30px; padding: 3px; background: transparent; border: 0; border-radius: 4px; font-size: 12px; color: #b9b9c2; }
+.design-version-actions { position: absolute; bottom: 0; right: 0; display: flex; gap: 2px; }
+.design-refine-button { width: 30px; min-height: 30px; padding: 3px; background: transparent; border: 0; border-radius: 4px; font-size: 12px; color: #b9b9c2; }
 .design-refine-button:hover { color: var(--ink); background: transparent; }
+.design-delete-button:hover { color: #f1a5ad; }
 .design-refine-button svg { width: 13px; height: 13px; }
 .design-review-badge { padding: 3px 6px; font-size: 12px; border: 0; border-radius: 3px; background: #302b25ee; color: #ead2aa; }
 .design-mock-badge { background: #26262dee; color: #dfdfe6; }

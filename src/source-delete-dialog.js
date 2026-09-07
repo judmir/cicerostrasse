@@ -1,4 +1,4 @@
-export function createSourceDeleteDialog(dialog, { escape, removeSource, removeFamily, restoreFocus }) {
+export function createSourceDeleteDialog(dialog, { escape, removeSource, removeFamily, removeVersion, restoreFocus }) {
   const lifecycle = new AbortController();
   const events = { signal: lifecycle.signal };
   let target, opener, previewURL, busy = false, disposed = false;
@@ -7,7 +7,7 @@ export function createSourceDeleteDialog(dialog, { escape, removeSource, removeF
     busy = value;
     dialog.querySelectorAll('button').forEach((button) => { button.disabled = value; });
     const confirm = dialog.querySelector('[data-confirm-delete]');
-    if (confirm) confirm.textContent = value ? 'Deleting…' : target?.kind === 'family' ? 'Delete versions' : 'Delete source';
+    if (confirm) confirm.textContent = value ? 'Deleting…' : target?.kind === 'family' ? 'Delete versions' : target?.kind === 'version' ? 'Delete version' : 'Delete source';
   };
 
   dialog.addEventListener('click', async (event) => {
@@ -19,10 +19,11 @@ export function createSourceDeleteDialog(dialog, { escape, removeSource, removeF
     error.hidden = true;
     try {
       if (target.kind === 'family') await removeFamily(target.rootId);
+      else if (target.kind === 'version') await removeVersion(target.image.id);
       else await removeSource(target.image.id);
       if (!disposed) dialog.close();
     } catch {
-      if (!disposed) { error.textContent = `Could not delete ${target.kind === 'family' ? 'these versions' : 'this source'}. Please try again.`; error.hidden = false; }
+      if (!disposed) { error.textContent = `Could not delete ${target.kind === 'family' ? 'these versions' : target.kind === 'version' ? 'this version' : 'this source'}. Please try again.`; error.hidden = false; }
     } finally { if (!disposed) setBusy(false); }
   }, events);
   dialog.addEventListener('cancel', (event) => { if (busy) event.preventDefault(); }, events);
@@ -42,6 +43,18 @@ export function createSourceDeleteDialog(dialog, { escape, removeSource, removeF
         <p class="source-delete-name">${escape(image.title)}</p>
         <p id="source-delete-description">${versionCount ? `The uploaded source will be deleted. Your ${versionCount} restyled ${versionCount === 1 ? 'version and its saved source snapshot will' : 'versions and their saved source snapshots will'} stay available.` : 'This source will be removed from your collection on this device. This cannot be undone.'}</p>
         <p role="alert" hidden></p><div class="source-delete-actions"><button class="button secondary" data-keep-source autofocus>Keep source</button><button class="button destructive" data-confirm-delete>Delete source</button></div>`;
+      if (!dialog.open) dialog.showModal();
+      dialog.querySelector('[data-keep-source]').focus();
+    },
+    openVersion(image) {
+      if (busy || disposed) return;
+      target = { kind: 'version', image }; opener = document.activeElement; release();
+      previewURL = URL.createObjectURL(image.thumbnail || image.blob);
+      dialog.innerHTML = `<h2 id="source-delete-title">Delete this version?</h2>
+        <img class="source-delete-preview" src="${previewURL}" alt="${escape(image.title)}"/>
+        <p class="source-delete-name">${escape(image.title)}</p>
+        <p id="source-delete-description">This version and its saved comparison data will be permanently removed. Your original image and other versions will not be deleted. This cannot be undone.</p>
+        <p role="alert" hidden></p><div class="source-delete-actions"><button class="button secondary" data-keep-source autofocus>Keep version</button><button class="button destructive" data-confirm-delete>Delete version</button></div>`;
       if (!dialog.open) dialog.showModal();
       dialog.querySelector('[data-keep-source]').focus();
     },
